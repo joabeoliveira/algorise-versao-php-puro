@@ -416,5 +416,6 @@ para configurações:
 2) opção de paleta de cores
 3) 
 
-Subindo a aplicação no easypanel:
+Aplicação implantada no portainer 
+
 
