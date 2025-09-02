@@ -1,0 +1,7 @@
+.env
+
+#/vendor/
+/docker/db_data/
+
+# Ignorar arquivo de override do Docker Compose
+docker-compose.override.yml

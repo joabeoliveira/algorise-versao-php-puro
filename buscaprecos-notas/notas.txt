@@ -1,0 +1,102 @@
+Ordem para instalar no VPS Contabo
+
+michel.vargas@gmail.com
+u,LJ7qK2iUfw_P8
+https://new.contabo.com/
+
+Ku1bV7ptjetr1cJ
+
+
+Ip VPS 194.163.131.97
+
+ssh -i ~/.ssh/id_rsa root@194.163.131.97
+
+Instalar 
+
+Docker
+Traefik
+
+***********************************************************************
+Portainer
+
+algoadmin
+dsfkjh3h2j%21DW
+
+
+************************************************************************
+
+
+
+##Install Docker
+
+curl -fsSL https://get.docker.com | bash
+
+##Enable at startup
+
+sudo systemctl enable docker
+
+## Start Docker Service
+
+sudo systemctl start docker
+
+## Status
+
+sudo systemctl status docker
+
+## Docker Swarm init
+
+docker swarm init
+
+docker network create --driver=overlay network_public
+docker network create -d overlay --attachable network_internal
+
+vi traefik.yaml
+
+docker stack deploy --prune --resolve-image always -c traefik.yaml traefik
+
+Instalação portainer (o painel te dá só alguns minutos para acessar e criar o usuário admin, caso contrário tem que instalar de novo)
+
+vi portainer.yaml
+
+docker stack deploy --prune --resolve-image always -c portainer.yaml portainer
+
+
+
+
+docker exec -i db mysql -u root -p"$MYSQL_ROOT_PASSWORD" buscaprecos < /tmp/buscaprecos_db_seed.sql
+docker exec -i app sh -c 'mysql -h db -u busca -p"$DB_PASSWORD" buscaprecos < buscaprecos_db_seed.sql'
+docker compose exec -T app sh -c 'mysql -h db -u busca -p"$DB_PASSWORD" buscaprecos < buscaprecos_db_seed.sql'
+
+
+sudo find / -xdev -type f -name 'docker-compose.yml' 2>/dev/null
+
+docker exec -it <app_container_name> sh
+
+app_app.1.oszwm9xa9i0ssd2a842sy735u
+
+docker exec -it app_app.1.oszwm9xa9i0ssd2a842sy735u sh
+
+/var/www/app/backup_saas.sql
+
+docker exec -i app_app.1.oszwm9xa9i0ssd2a842sy735u sh -lc 'mysql -h db -u busca -p"$DB_PASSWORD" buscaprecos < /var/www/app/backup_saas.sql'
+
+db
+db_db.1.fmdlsxfq8wicq7rw1u9abh172
+
+docker exec -i app_app.1.oszwm9xa9i0ssd2a842sy735u sh -lc 'cat /var/www/app/backup_saas.sql' \
+| docker exec -i db_db.1.fmdlsxfq8wicq7rw1u9abh172 sh -lc 'mysql -u busca -p"$MYSQL_PASSWORD" buscaprecos'
+
+
+docker exec -it db_db.1.fmdlsxfq8wicq7rw1u9abh172 sh -lc 'env | grep -E "MYSQL_(USER|PASSWORD|DATABASE|ROOT_PASSWORD)"'
+docker exec -it db_db.1.fmdlsxfq8wicq7rw1u9abh172 sh -lc 'mysql -ubusca -p"$MYSQL_PASSWORD" -e "SELECT USER(),CURRENT_USER();"'
+
+
+docker exec -it db_db.1.fmdlsxfq8wicq7rw1u9abh172 sh -lc '
+PASS="$MYSQL_PASSWORD";
+mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
+CREATE USER IF NOT EXISTS '\''busca'\''@'\''%'\'' IDENTIFIED BY '\''$DB_PASSWORD'\'';
+GRANT ALL PRIVILEGES ON buscaprecos.* TO '\''busca'\''@'\''%'\''; FLUSH PRIVILEGES;"'
+
+
+docker exec -i app_app.1.oszwm9xa9i0ssd2a842sy735u sh -lc 'cat /var/www/app/backup_saas.sql' \
+| docker exec -i db_db.1.fmdlsxfq8wicq7rw1u9abh172 sh -lc 'mysql -ubusca -pbusca_password buscaprecos'
