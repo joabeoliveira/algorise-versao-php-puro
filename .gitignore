@@ -1,0 +1,73 @@
+# Arquivos de ambiente
+.env
+.env.local
+.env.production
+
+# Dependências do Composer
+/vendor/
+
+# Logs
+*.log
+logs/
+
+# Cache do sistema
+cache/
+tmp/
+
+# Arquivos de sessão PHP
+sessions/
+
+# Arquivos de upload
+uploads/
+
+# Docker volumes e dados
+db_data/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-*
+
+# Node.js (caso adicione frontend moderno no futuro)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de backup
+*.bak
+*.backup
+*.sql.backup
+
+# Arquivos específicos do Windows
+ehthumbs.db
+Desktop.ini
+
+# Arquivos específicos do Linux/Mac
+.directory
+.Trash-*
+
+# Arquivos de configuração local específicos
+config/local/
+.local
+
+# Certificados SSL (se houver)
+*.pem
+*.key
+*.crt
+
+# Arquivos de debug
+xdebug.log
+error.log
+access.log

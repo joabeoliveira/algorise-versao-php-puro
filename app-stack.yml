@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  app:
+    image: pbraconnot/buscaprecos-app:1.0.0
+    environment:
+      APP_URL: ${APP_URL}
+      DB_HOST: db
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      HTTP_VERIFY_SSL: ${HTTP_VERIFY_SSL:-true}
+    networks:
+      - network_internal
+    deploy:
+      replicas: 1
+      restart_policy: { condition: on-failure }
+
+networks:
+  network_internal:
+    external: true
+    name: network_internal
