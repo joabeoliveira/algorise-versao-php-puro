@@ -11,7 +11,7 @@
         </div>
         <div class="card-body">
             <p class="lead text-center mb-4">
-                Esta seção será sua central de inteligência para acompanhar o desempenho e a economia gerada com o BuscaPreços AI!
+                Esta seção será sua central de inteligência para acompanhar o desempenho e a economia gerada com o Algorise AI!
             </p>
 
             <div class="row text-center mb-4">

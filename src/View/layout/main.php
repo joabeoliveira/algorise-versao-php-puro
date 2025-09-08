@@ -138,7 +138,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
 
 <div id="chatbot-container" style="display: none;">
     <div id="chat-header">
-        Chatbot Buscapreços AI
+        Chatbot Algorise AI
         <button id="close-button"><i class="fas fa-times"></i></button>
     </div>
     <div id="chat-messages"></div>

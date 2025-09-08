@@ -13,17 +13,17 @@ services:
         - traefik.docker.network=network_public
 
         # HTTPS router (Let’s Encrypt)
-        - traefik.http.routers.buscaprecos.rule=Host(`${APP_HOST}`)
-        - traefik.http.routers.buscaprecos.entrypoints=websecure
-        - traefik.http.routers.buscaprecos.tls=true
-        - traefik.http.routers.buscaprecos.tls.certresolver=letsencryptresolver
-        - traefik.http.services.buscaprecos.loadbalancer.server.port=80
+        - traefik.http.routers.algorise.rule=Host(`${APP_HOST}`)
+        - traefik.http.routers.algorise.entrypoints=websecure
+        - traefik.http.routers.algorise.tls=true
+        - traefik.http.routers.algorise.tls.certresolver=letsencryptresolver
+        - traefik.http.services.algorise.loadbalancer.server.port=80
 
         # HTTP router to allow ACME http-01 and redirect to HTTPS
-        - traefik.http.routers.buscaprecos-http.rule=Host(`${APP_HOST}`)
-        - traefik.http.routers.buscaprecos-http.entrypoints=web
-        - traefik.http.routers.buscaprecos-http.priority=1
-        - traefik.http.routers.buscaprecos-http.middlewares=redirect-to-https
+        - traefik.http.routers.algorise-http.rule=Host(`${APP_HOST}`)
+        - traefik.http.routers.algorise-http.entrypoints=web
+        - traefik.http.routers.algorise-http.priority=1
+        - traefik.http.routers.algorise-http.middlewares=redirect-to-https
 
         # Local redirect middleware (defined on same service)
         - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
