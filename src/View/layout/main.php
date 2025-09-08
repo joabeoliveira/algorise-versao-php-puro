@@ -7,7 +7,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $tituloPagina ?? 'Busca Preços AI' ?></title>
+    <title><?= $tituloPagina ?? 'Algorise' ?></title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -35,7 +35,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
         <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px;" id="sidebar">
             <a href="/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
                 <i class="bi bi-graph-up-arrow me-2 fs-4"></i>
-                <span class="fs-4">Busca Preços AI</span>
+                <span class="fs-4">Algorise</span>
             </a>
             <hr>
             <ul class="nav nav-pills flex-column mb-auto">
