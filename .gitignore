@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Arquivos de ambiente
 .env
 .env.local
@@ -71,3 +72,12 @@ config/local/
 xdebug.log
 error.log
 access.log
+=======
+.env
+
+#/vendor/
+/docker/db_data/
+
+# Ignorar arquivo de override do Docker Compose
+docker-compose.override.yml
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb

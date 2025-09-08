@@ -4,6 +4,7 @@ michel.vargas@gmail.com
 u,LJ7qK2iUfw_P8
 https://new.contabo.com/
 
+<<<<<<< HEAD
 Ku1bV7ptjetr1cJ
 
 
@@ -11,6 +12,17 @@ Ku1bV7ptjetr1cJ
 
 ssh -i ~/.ssh/id_rsa root@194.163.131.97
 
+=======
+
+
+Ip VPS 194.163.131.97
+Senha SSH 
+Ku1bV7ptjetr1cJ
+
+ssh -i ~/.ssh/id_rsa root@194.163.131.97
+
+
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
 Instalar 
 
 Docker

@@ -54,10 +54,17 @@ services:
     # --- ADICIONADO: INSTRUÇÕES PARA O TRAEFIK ---
     labels:
       - "traefik.enable=true" # Habilita o Traefik para este contêiner
+<<<<<<< HEAD
       - "traefik.http.routers.algorise.rule=Host(`app.algorise.com.br`)" # Domínio Algorise
       - "traefik.http.routers.algorise.entrypoints=websecure" # Usa a entrada segura (HTTPS)
       - "traefik.http.routers.algorise.tls.certresolver=letsencrypt" # Pede um certificado SSL
       - "traefik.http.services.algorise.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
+=======
+      - "traefik.http.routers.buscaprecos.rule=Host(`app.algorise.com.br`)" # <-- TROQUE PELO SEU DOMÍNIO AQUI
+      - "traefik.http.routers.buscaprecos.entrypoints=websecure" # Usa a entrada segura (HTTPS)
+      - "traefik.http.routers.buscaprecos.tls.certresolver=letsencrypt" # Pede um certificado SSL
+      - "traefik.http.services.buscaprecos.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
 
 # Seção para definir o volume do banco de dados
 volumes:
