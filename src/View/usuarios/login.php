@@ -9,7 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Busca Preços AI</title>
+    <title>Login - Algorise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -43,7 +43,7 @@ if (session_status() === PHP_SESSION_NONE) {
         <div class="card-body p-5">
             <div class="text-center mb-4">
                 <i class="bi bi-graph-up-arrow" style="font-size: 3rem; color: #0d6efd;"></i>
-                <h3 class="card-title mt-2">Busca Preços AI</h3>
+                <h3 class="card-title mt-2">Algorise</h3>
                 <p class="text-muted">Por favor, insira suas credenciais para continuar.</p>
             </div>
             

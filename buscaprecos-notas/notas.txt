@@ -4,12 +4,14 @@ michel.vargas@gmail.com
 u,LJ7qK2iUfw_P8
 https://new.contabo.com/
 
-Ku1bV7ptjetr1cJ
 
 
 Ip VPS 194.163.131.97
+Senha SSH 
+Ku1bV7ptjetr1cJ
 
 ssh -i ~/.ssh/id_rsa root@194.163.131.97
+
 
 Instalar 
 
