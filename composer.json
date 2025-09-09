@@ -1,6 +1,7 @@
 {
     "name": "joabe/buscaprecos",
     "description": "micro saas",
+    "license": "proprietary",
     "autoload": {
         "psr-4": {
             "Joabe\\Buscaprecos\\": "src/"
