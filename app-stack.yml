@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   app:
-    image: pbraconnot/buscaprecos-app:1.0.0
+    image: pbraconnot/buscaprecos-app:1.0.2
     environment:
       APP_URL: ${APP_URL}
       DB_HOST: db
