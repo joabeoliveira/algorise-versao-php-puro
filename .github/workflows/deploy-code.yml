@@ -56,7 +56,7 @@ jobs:
         port: ${{ secrets.SSH_PORT || 22 }}
         script_stop: true
         script: |
-          echo "🔄 Iniciando deploy..."
+          echo "🔄 Iniciando deploy com rebuild de imagem..."
           
           # Navegar para diretório do projeto
           cd /root/buscaprecos-main || exit 1
@@ -74,15 +74,26 @@ jobs:
           echo "📦 Instalando dependências..."
           composer install --no-dev --optimize-autoloader
           
-          # Reiniciar serviços Docker
-          echo "🔄 Reiniciando serviços..."
-          docker service update --force app_app
-          docker service update --force webserver_webserver
+          # Gerar nova tag de versão baseada no timestamp
+          NEW_TAG="1.0.$(date +%Y%m%d%H%M)"
+          echo "🏷️ Nova tag: $NEW_TAG"
+          
+          # Build nova imagem
+          echo "🐳 Fazendo build da nova imagem..."
+          docker build -f docker/php/Dockerfile -t pbraconnot/buscaprecos-app:$NEW_TAG .
+          
+          # Atualizar serviço com nova imagem
+          echo "🔄 Atualizando serviço com nova imagem..."
+          docker service update --image pbraconnot/buscaprecos-app:$NEW_TAG app_app
           
           # Verificar status dos serviços
           echo "✅ Verificando status dos serviços..."
-          sleep 10
+          sleep 15
           docker service ls | grep -E "(app_app|webserver_webserver)"
+          
+          # Limpar imagens antigas (manter últimas 3)
+          echo "🧹 Limpando imagens antigas..."
+          docker images pbraconnot/buscaprecos-app --format "{{.Tag}}" | sort -r | tail -n +4 | xargs -r docker rmi pbraconnot/buscaprecos-app: || true
           
           echo "🎉 Deploy concluído com sucesso!"
           
