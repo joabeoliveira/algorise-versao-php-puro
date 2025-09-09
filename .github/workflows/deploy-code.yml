@@ -1,0 +1,99 @@
+name: 🚀 Deploy Código (sem alterações de BD)
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'migrations/**'
+      - '*.md'
+      - '.gitignore'
+      - 'docker-compose.dev.yml'
+      - 'docker-compose.production-debug.yml'
+
+jobs:
+  deploy:
+    name: Deploy Aplicação
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🐘 Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, dom, filter, gd, iconv, json, mbstring, fileinfo
+        
+    - name: 📦 Cache Composer
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: 🔧 Instalar dependências
+      run: composer install --prefer-dist --no-progress --no-suggest --no-dev --optimize-autoloader
+      
+    - name: ✅ Validar composer.json
+      run: composer validate --strict
+      
+    - name: 🧪 Executar testes básicos (se existirem)
+      run: |
+        if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
+          vendor/bin/phpunit --testsuite=unit --coverage-text --colors=never
+        else
+          echo "Nenhum teste encontrado, prosseguindo..."
+        fi
+        
+    - name: 🚀 Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        password: ${{ secrets.SSH_PASSWORD }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script_stop: true
+        script: |
+          echo "🔄 Iniciando deploy..."
+          
+          # Navegar para diretório do projeto
+          cd /root/buscaprecos-main || exit 1
+          
+          # Backup do código atual (fallback)
+          echo "📦 Criando backup do código atual..."
+          cp -r . ../backup_code_$(date +%Y%m%d_%H%M%S) || true
+          
+          # Atualizar código do GitHub
+          echo "⬇️ Atualizando código do GitHub..."
+          git fetch origin
+          git reset --hard origin/main
+          
+          # Instalar/atualizar dependências
+          echo "📦 Instalando dependências..."
+          composer install --no-dev --optimize-autoloader
+          
+          # Reiniciar serviços Docker
+          echo "🔄 Reiniciando serviços..."
+          docker service update --force app_app
+          docker service update --force webserver_webserver
+          
+          # Verificar status dos serviços
+          echo "✅ Verificando status dos serviços..."
+          sleep 10
+          docker service ls | grep -E "(app_app|webserver_webserver)"
+          
+          echo "🎉 Deploy concluído com sucesso!"
+          
+    - name: 🔔 Notificar sucesso
+      if: success()
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "🌐 Aplicação disponível em produção"
+        
+    - name: 🚨 Notificar falha
+      if: failure()
+      run: |
+        echo "❌ Deploy falhou!"
+        echo "📋 Verifique os logs para mais detalhes"

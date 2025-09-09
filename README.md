@@ -1,11 +1,11 @@
 <<<<<<< HEAD
-# 🔍 BuscaPreços AI
+# 🔍 Algorise AI
 
 > Sistema de automação de processos de cotação, análise de preços e gestão de fornecedores para compras públicas e privadas.
 
 ## 📋 Sobre o Projeto
 
-O **BuscaPreços AI** é um Micro SaaS desenvolvido para automatizar e otimizar processos relacionados à:
+O **Algorise AI** é um Micro SaaS desenvolvido para automatizar e otimizar processos relacionados à:
 
 - 🚀 Cotações rápidas e públicas
 - 📊 Gestão centralizada de processos, itens e fornecedores  
@@ -203,7 +203,7 @@ Para suporte, envie um email para joabeantonio@gmail.com ou abra uma issue no Gi
   <p>⭐ Deixe uma estrela se este projeto te ajudou!</p>
 </div>
 =======
-# BuscaPreços AI
+# Algorise AI
 
 Micro SaaS para automação de processos de cotação, análise de preços e gestão de fornecedores.
 
