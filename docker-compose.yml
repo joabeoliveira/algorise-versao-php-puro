@@ -1,6 +1,7 @@
-# docker-compose.yml (VERSÃO CORRIGIDA PARA PRODUÇÃO)
+version: '3.8'
+
 services:
-  # Serviço PHP
+  # Serviço PHP-FPM
   app:
     build:
       context: .
@@ -8,13 +9,11 @@ services:
     volumes:
       - ./:/var/www/app
     working_dir: /var/www/app
-    depends_on:
-      - db
     environment:
       - DB_HOST=db
-      - DB_DATABASE=${MYSQL_DATABASE}
-      - DB_USER=${MYSQL_USER}
-      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_DATABASE=buscaprecos
+      - DB_USER=busca
+      - DB_PASSWORD=busca_password
 
   # Banco de Dados MySQL
   db:
@@ -22,10 +21,10 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: buscaprecos
+      MYSQL_USER: busca
+      MYSQL_PASSWORD: busca_password
+      MYSQL_ROOT_PASSWORD: root_password_123
     ports:
       - "3306:3306"
 
@@ -41,6 +40,5 @@ services:
       - "80:80"
       - "443:443"
 
-# Seção para definir o volume do banco de dados
 volumes:
   db_data:
