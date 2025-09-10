@@ -1,4 +1,4 @@
-# docker-compose.yml (VERSÃO CORRIGIDA PARA PRODUÇÃO COM TRAEFIK)
+# docker-compose.yml (VERSÃO CORRIGIDA PARA PRODUÇÃO)
 services:
   # Serviço PHP
   app:
@@ -10,9 +10,11 @@ services:
     working_dir: /var/www/app
     depends_on:
       - db
-    networks:
-      - default
-      - web
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=${MYSQL_DATABASE}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
 
   # Banco de Dados MySQL
   db:
@@ -24,9 +26,8 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    networks:
-      - default
-      - web
+    ports:
+      - "3306:3306"
 
   # Servidor Web Nginx
   webserver:
@@ -36,22 +37,10 @@ services:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
-    networks:
-      - default
-      - web
-    labels:
-      - "traefik.enable=true" # Habilita o Traefik para este contêiner
-      - "traefik.http.routers.algorise.rule=Host(`app.algorise.com.br`)" # Domínio Algorise
-      - "traefik.http.routers.algorise.entrypoints=websecure" # Usa a entrada segura (HTTPS)
-      - "traefik.http.routers.algorise.tls.certresolver=letsencrypt" # Pede um certificado SSL
-      - "traefik.http.services.algorise.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
+    ports:
+      - "80:80"
+      - "443:443"
 
 # Seção para definir o volume do banco de dados
 volumes:
   db_data:
-
-# Seção para definir as redes que os serviços usam
-networks:
-  default: # A rede interna padrão da stack
-  web:
-    external: true # Informa que a rede 'web' já existe e foi criada manualmente por nós

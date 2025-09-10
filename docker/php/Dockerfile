@@ -7,9 +7,8 @@ RUN apk add --no-cache \
     libpng-dev \
     jpeg-dev \
     freetype-dev \
-    libzip-dev
-
-RUN docker-php-ext-install pdo pdo_mysql curl gd zip
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql curl gd zip
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -20,6 +19,12 @@ RUN composer install --no-dev --optimize-autoloader
 
 # Copia todo o conteúdo
 COPY . .
+
+# Define permissões corretas
+RUN chown -R www-data:www-data /var/www/app \
+    && chmod -R 755 /var/www/app
+
+USER www-data
 
 EXPOSE 9000
 
