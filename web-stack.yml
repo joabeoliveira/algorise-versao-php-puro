@@ -12,8 +12,19 @@ services:
         - traefik.enable=true
         - traefik.docker.network=network_public
 
+        - traefik.http.routers.buscaprecos.rule=Host(`${APP_HOST}`)
+        - traefik.http.routers.buscaprecos.entrypoints=websecure
+        - traefik.http.routers.buscaprecos.tls=true
+        - traefik.http.routers.buscaprecos.tls.certresolver=letsencryptresolver
+        - traefik.http.services.buscaprecos.loadbalancer.server.port=80
+
+        # HTTP router to allow ACME http-01 and redirect to HTTPS
+        - traefik.http.routers.buscaprecos-http.rule=Host(`${APP_HOST}`)
+        - traefik.http.routers.buscaprecos-http.entrypoints=web
+        - traefik.http.routers.buscaprecos-http.priority=1
+        - traefik.http.routers.buscaprecos-http.middlewares=redirect-to-https
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
         # HTTPS router (Let’s Encrypt)
-<<<<<<< HEAD
         - traefik.http.routers.algorise.rule=Host(`${APP_HOST}`)
         - traefik.http.routers.algorise.entrypoints=websecure
         - traefik.http.routers.algorise.tls=true
