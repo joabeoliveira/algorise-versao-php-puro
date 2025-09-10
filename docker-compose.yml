@@ -5,16 +5,11 @@ services:
     build:
       context: .
       dockerfile: ./docker/php/Dockerfile
-
-    #build: ./docker/php
     volumes:
-    - /root/buscaprecos:/var/www/app
-    # - ./:/var/www/app
+      - ./:/var/www/app
     working_dir: /var/www/app
     depends_on:
       - db
-    # --- ADICIONADO ---
-    # Conecta este serviço à rede padrão interna e à rede externa 'web' do Traefik.
     networks:
       - default
       - web
@@ -29,8 +24,6 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    # --- ADICIONADO ---
-    # Também conecta o banco de dados à rede 'web' para que a aplicação possa acessá-lo.
     networks:
       - default
       - web
@@ -39,42 +32,24 @@ services:
   webserver:
     image: nginx:alpine
     volumes:
-      # - ./:/var/www/app
-      - /root/buscaprecos:/var/www/app
-      #- ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - /root/buscaprecos/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-
+      - ./:/var/www/app
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
-    # --- ADICIONADO ---
-    # Conecta o Nginx à rede 'web'.
     networks:
       - default
       - web
-    # --- ADICIONADO: INSTRUÇÕES PARA O TRAEFIK ---
-      - "traefik.http.routers.buscaprecos.rule=Host(`app.algorise.com.br`)" # <-- TROQUE PELO SEU DOMÍNIO AQUI
-      - "traefik.http.routers.buscaprecos.entrypoints=websecure" # Usa a entrada segura (HTTPS)
-      - "traefik.http.routers.buscaprecos.tls.certresolver=letsencrypt" # Pede um certificado SSL
-      - "traefik.http.services.buscaprecos.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
     labels:
       - "traefik.enable=true" # Habilita o Traefik para este contêiner
       - "traefik.http.routers.algorise.rule=Host(`app.algorise.com.br`)" # Domínio Algorise
       - "traefik.http.routers.algorise.entrypoints=websecure" # Usa a entrada segura (HTTPS)
       - "traefik.http.routers.algorise.tls.certresolver=letsencrypt" # Pede um certificado SSL
       - "traefik.http.services.algorise.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
-=======
-      - "traefik.http.routers.buscaprecos.rule=Host(`app.algorise.com.br`)" # <-- TROQUE PELO SEU DOMÍNIO AQUI
-      - "traefik.http.routers.buscaprecos.entrypoints=websecure" # Usa a entrada segura (HTTPS)
-      - "traefik.http.routers.buscaprecos.tls.certresolver=letsencrypt" # Pede um certificado SSL
-      - "traefik.http.services.buscaprecos.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
 
 # Seção para definir o volume do banco de dados
 volumes:
   db_data:
 
-# --- ADICIONADO ---
 # Seção para definir as redes que os serviços usam
 networks:
   default: # A rede interna padrão da stack
