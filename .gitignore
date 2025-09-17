@@ -1,7 +1,25 @@
-.env
-
-#/vendor/
+# Arquivos e pastas de dependências
+/vendor/
+/storage/
+buscaprecos-notas/
 /docker/db_data/
+
+# Arquivos de ambiente e segredos
+.env
+.env.local
+.env.testing
+
+# Arquivos de log e cache
+*.log
+*.sql
+__pycache__/
+
+# Configurações do VS Code
+.vscode/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
 
 # Ignorar arquivo de override do Docker Compose
 docker-compose.override.yml
