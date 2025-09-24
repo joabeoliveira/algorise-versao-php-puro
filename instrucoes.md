@@ -416,6 +416,10 @@ para configurações:
 2) opção de paleta de cores
 3) 
 
+<<<<<<< HEAD
+Subindo a aplicação no easypanel:
+=======
 Aplicação implantada no portainer 
 
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
 

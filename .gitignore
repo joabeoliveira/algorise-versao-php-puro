@@ -23,3 +23,113 @@ Thumbs.db
 
 # Ignorar arquivo de override do Docker Compose
 docker-compose.override.yml
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
+# ===============================================
+# BUSCAPREÇOS - ARQUIVOS IGNORADOS PELO GIT
+# ===============================================
+
+# Arquivos de ambiente (CRÍTICO - NUNCA COMMITAR)
+.env
+.env.local
+.env.production
+.env.staging
+.env.test
+
+# Dependências do Composer
+/vendor/
+
+# Dados do Docker (volumes persistentes)
+/docker/db_data/
+db_data/
+
+# Logs do sistema
+*.log
+logs/
+error.log
+access.log
+xdebug.log
+
+# Cache e arquivos temporários
+cache/
+tmp/
+*.tmp
+*.temp
+
+# Arquivos de sessão PHP
+sessions/
+
+# Arquivos de upload de usuários
+uploads/
+
+# Backups (podem conter dados sensíveis)
+*.bak
+*.backup
+*.sql.backup
+backups/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.directory
+.Trash-*
+
+# Arquivos temporários de editores
+*.swp
+*.swo
+*~
+
+# IDEs e editores
+.vscode/
+.idea/
+*.sublime-*
+.phpstorm.meta.php
+
+# Node.js (caso adicione frontend moderno)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Configurações locais específicas
+config/local/
+.local
+docker-compose.override.yml
+
+# Certificados e chaves SSL
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Arquivos de credenciais (CRÍTICO)
+credentials.json
+secrets.txt
+passwords.txt
+
+# Arquivos específicos do projeto
+buscaprecos-notas/
+
+# Arquivos de debug e profiling
+*.prof
+cachegrind.out.*
+xhprof/
+
+# Composer específico
+composer.phar
+
+# Docker Compose específico
+docker-compose.local.yml
+=======
+.env
+
+#/vendor/
+/docker/db_data/
+
+# Ignorar arquivo de override do Docker Compose
+docker-compose.override.yml
+>>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb

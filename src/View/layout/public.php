@@ -13,7 +13,7 @@
     <main class="container mt-5">
         <div class="card">
             <div class="card-header fs-4 text-center">
-                Busca Preços AI - Portal de Cotações
+                Algorise - Portal de Cotações
             </div>
             <div class="card-body p-4">
                 <?php 

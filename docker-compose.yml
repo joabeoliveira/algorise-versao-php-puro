@@ -1,71 +1,38 @@
-# docker-compose.yml (VERSÃO CORRIGIDA PARA PRODUÇÃO COM TRAEFIK)
+version: '3.8'
+
 services:
-  # Serviço PHP
   app:
     build:
       context: .
       dockerfile: ./docker/php/Dockerfile
-
-    #build: ./docker/php
     volumes:
-    - /root/buscaprecos:/var/www/app
-    # - ./:/var/www/app
+      - ./:/var/www/app
     working_dir: /var/www/app
-    depends_on:
-      - db
-    # --- ADICIONADO ---
-    # Conecta este serviço à rede padrão interna e à rede externa 'web' do Traefik.
-    networks:
-      - default
-      - web
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=buscaprecos
+      - DB_USER=busca
+      - DB_PASSWORD=busca_password
 
-  # Banco de Dados MySQL
   db:
     image: mysql:8.0
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    # --- ADICIONADO ---
-    # Também conecta o banco de dados à rede 'web' para que a aplicação possa acessá-lo.
-    networks:
-      - default
-      - web
+      MYSQL_DATABASE: buscaprecos
+      MYSQL_USER: busca
+      MYSQL_PASSWORD: busca_password
+      MYSQL_ROOT_PASSWORD: root_password_123
 
-  # Servidor Web Nginx
   webserver:
     image: nginx:alpine
     volumes:
-      # - ./:/var/www/app
-      - /root/buscaprecos:/var/www/app
-      #- ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - /root/buscaprecos/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-
+      - ./:/var/www/app
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
-    # --- ADICIONADO ---
-    # Conecta o Nginx à rede 'web'.
-    networks:
-      - default
-      - web
-    # --- ADICIONADO: INSTRUÇÕES PARA O TRAEFIK ---
-    labels:
-      - "traefik.enable=true" # Habilita o Traefik para este contêiner
-      - "traefik.http.routers.buscaprecos.rule=Host(`app.algorise.com.br`)" # <-- TROQUE PELO SEU DOMÍNIO AQUI
-      - "traefik.http.routers.buscaprecos.entrypoints=websecure" # Usa a entrada segura (HTTPS)
-      - "traefik.http.routers.buscaprecos.tls.certresolver=letsencrypt" # Pede um certificado SSL
-      - "traefik.http.services.buscaprecos.loadbalancer.server.port=80" # Redireciona para a porta 80 interna do Nginx
+    ports:
+      - "8080:80"
 
-# Seção para definir o volume do banco de dados
 volumes:
   db_data:
-
-# --- ADICIONADO ---
-# Seção para definir as redes que os serviços usam
-networks:
-  default: # A rede interna padrão da stack
-  web:
-    external: true # Informa que a rede 'web' já existe e foi criada manualmente por nós

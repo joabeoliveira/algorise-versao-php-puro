@@ -7,18 +7,17 @@ RUN apk add --no-cache \
     libpng-dev \
     jpeg-dev \
     freetype-dev \
-    libzip-dev
-
-RUN docker-php-ext-install pdo pdo_mysql curl gd zip
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql curl gd zip
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copia os arquivos do composer do contexto raiz
-COPY ../../composer.json ../../composer.lock ./
+COPY composer.json composer.lock ./
 
 RUN composer install --no-dev --optimize-autoloader
 
-# Copia todo o conteúdo do contexto raiz
-COPY ../../ ./
+COPY . .
 
 EXPOSE 9000
+
+CMD ["php-fpm"]
