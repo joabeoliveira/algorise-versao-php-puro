@@ -246,3 +246,6 @@ docker-compose -f docker-compose.production-debug.yml up -d
 3. Acesse o Portainer em https://portainer.algorise.com.br
 4. Atualize os stacks conforme necessário
 >>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
+
+
+teste de commit
