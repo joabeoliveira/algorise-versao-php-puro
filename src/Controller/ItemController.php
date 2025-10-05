@@ -8,12 +8,13 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class ItemController
 {
     public function listar($params = [])
     {
-        $processo_id = $args['processo_id'];
+        $processo_id = $params['processo_id'] ?? 0;
         $pdo = \getDbConnection();
 
         // 1. Busca os dados do processo pai para exibir o nome na página
@@ -22,8 +23,9 @@ class ItemController
         $processo = $stmtProcesso->fetch();
 
         if (!$processo) {
-            $response->getBody()->write("Processo não encontrado.");
-            return $response->withStatus(404);
+            echo "Processo não encontrado.";
+            http_response_code(404);
+            return;
         }
 
         // 2. Busca a lista de itens existentes para este processo
@@ -51,7 +53,7 @@ class ItemController
     // NOVO MÉTODO: Salva o novo item no banco de dados
     public function criar($params = [])
 {
-    $processo_id = $args['processo_id'];
+    $processo_id = $params['processo_id'];
     $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $pdo = \getDbConnection();
     $redirectUrl = "/processos/{$processo_id}/itens"; // URL de redirecionamento padrão
@@ -69,7 +71,7 @@ class ItemController
             'mensagem' => 'Erro: Já existe um item com este Número ou CATMAT.',
             'dados_formulario' => $dados
         ];
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
     }
 
     // Se passou na validação, executa o INSERT
@@ -87,12 +89,12 @@ class ItemController
         'mensagem' => 'Item adicionado com sucesso!'
     ];
 
-    return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
 }
     public function exibirFormularioEdicao($params = [])
     {
-        $processo_id = $args['processo_id'];
-    $item_id = $args['item_id'];
+        $processo_id = $params['processo_id'];
+    $item_id = $params['item_id'];
     $pdo = \getDbConnection();
 
     // Busca o processo pai
@@ -106,8 +108,9 @@ class ItemController
     $item = $stmtItem->fetch();
 
     if (!$processo || !$item) {
-        $response->getBody()->write("Processo ou item não encontrado.");
-        return $response->withStatus(404);
+        echo "Processo ou item não encontrado.";
+        http_response_code(404);
+        return;
     }
 
     // Prepara as variáveis e chama o layout principal
@@ -124,8 +127,8 @@ class ItemController
     // NOVO MÉTODO: Recebe os dados do formulário e atualiza o item no banco
     public function atualizar($params = [])
 {
-    $processo_id = $args['processo_id'];
-    $item_id = $args['item_id'];
+    $processo_id = $params['processo_id'];
+    $item_id = $params['item_id'];
     $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $pdo = \getDbConnection();
 
@@ -142,7 +145,7 @@ class ItemController
     if ($count > 0) {
         // Se encontrou duplicado, redireciona de volta com uma mensagem de erro
         $redirectUrl = "/processos/{$processo_id}/itens?erro=duplicado";
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
     }
     // --- FIM DA VALIDAÇÃO ---
 
@@ -174,8 +177,8 @@ class ItemController
     // NOVO MÉTODO: Processa a exclusão de um item
     public function excluir($params = [])
 {
-    $processo_id = $args['processo_id'];
-    $item_id = $args['item_id'];
+    $processo_id = $params['processo_id'];
+    $item_id = $params['item_id'];
     $pdo = \getDbConnection();
 
     // Prepara e executa a query de exclusão
@@ -184,7 +187,7 @@ class ItemController
     $stmt->execute([$item_id, $processo_id]);
 
     // Redireciona de volta para a lista de itens do processo
-    \Joabe\Buscaprecos\Core\Router::redirect('/processos/{$processo_id}/itens'); return;
+    \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
 
 }
 
@@ -193,7 +196,7 @@ class ItemController
 
     public function exibirFormularioImportacao($params = [])
     {
-        $processo_id = $args['processo_id'];
+        $processo_id = $params['processo_id'];
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
         $stmt->execute([$processo_id]);
@@ -203,7 +206,7 @@ class ItemController
         $stmtCount = $pdo->prepare("SELECT COUNT(id) as total FROM itens WHERE processo_id = ?");
         $stmtCount->execute([$processo_id]);
         if ($stmtCount->fetchColumn() > 0) {
-            \Joabe\Buscaprecos\Core\Router::redirect('/processos/$processo_id/itens'); return;
+            \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
         }
 
         $tituloPagina = "Importar Itens";
@@ -216,18 +219,18 @@ class ItemController
 
     public function processarImportacao($params = [])
 {
-    $processo_id = $args['processo_id'];
-    $uploadedFiles = $request->getUploadedFiles();
+    $processo_id = $params['processo_id'];
+    $uploadedFiles = $_FILES;
     $arquivoPlanilha = $uploadedFiles['arquivo_planilha'] ?? null;
-    $redirectUrl = "/processos/$processo_id/itens/importar";
+    $redirectUrl = "/processos/{$processo_id}/itens/importar";
 
-    if (!$arquivoPlanilha || $arquivoPlanilha->getError() !== UPLOAD_ERR_OK) {
+    if (!$arquivoPlanilha || $arquivoPlanilha['error'] !== UPLOAD_ERR_OK) {
         $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro no upload do arquivo.'];
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
     }
 
     try {
-        $spreadsheet = IOFactory::load($arquivoPlanilha->getStream()->getMetadata('uri'));
+        $spreadsheet = IOFactory::load($arquivoPlanilha['tmp_name']);
         $sheet = $spreadsheet->getActiveSheet();
         
         $linhasParaImportar = [];
@@ -268,7 +271,7 @@ class ItemController
         if (!empty($errosValidacao)) {
             $mensagemErro = "A importação foi cancelada. Todos os campos são obrigatórios. Verifique as seguintes linhas na sua planilha: " . implode(', ', $errosValidacao);
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $mensagemErro];
-            return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
         }
 
         // FASE 2: IMPORTAÇÃO NO BANCO DE DADOS
@@ -296,11 +299,11 @@ class ItemController
     } catch (\Exception $e) {
         if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
         $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro crítico ao processar a planilha: ' . $e->getMessage()];
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
     }
     
     $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => "Importação concluída! " . count($linhasParaImportar) . " itens foram adicionados com sucesso ao processo."];
-    \Joabe\Buscaprecos\Core\Router::redirect('/processos/$processo_id/itens'); return;
+    \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
 }
 
     public function gerarModeloPlanilha($params = [])
@@ -322,7 +325,7 @@ class ItemController
         $sheet->setCellValue('D2', 'UN');
         $sheet->setCellValue('E2', 100);
         
-        $headerStyle = ['font' => ['bold' => true], 'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDDDDDD']]];
+        $headerStyle = ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDDDDDD']]];
         $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
         foreach (range('A', 'E') as $columnID) {
             $sheet->getColumnDimension($columnID)->setAutoSize(true);
@@ -333,10 +336,9 @@ class ItemController
         ob_start();
         $writer->save('php://output');
         $fileContent = ob_get_clean();
-        $response->getBody()->write($fileContent);
-        return $response
-            ->withHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            ->withHeader('Content-Disposition', 'attachment;filename="modelo_importacao_itens.xlsx"');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="modelo_importacao_itens.xlsx"');
+        echo $fileContent;
     }
     // FIM DOS MÉTODOS PARA IMPORTAÇÃO DE ITENS
 
