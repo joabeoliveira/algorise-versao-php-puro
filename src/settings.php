@@ -235,3 +235,22 @@ if (php_sapi_name() !== 'cli' && !headers_sent()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
 }
+
+/**
+ * Retorna as configurações do banco de dados
+ * Para compatibilidade com arquivos que esperam um array de configuração
+ */
+return [
+    'db' => [
+        'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
+        'dbname' => $_ENV['DB_DATABASE'] ?? 'algorise',
+        'user' => $_ENV['DB_USER'] ?? 'root',
+        'pass' => $_ENV['DB_PASSWORD'] ?? '',
+        'charset' => 'utf8mb4'
+    ],
+    'app' => [
+        'name' => APP_NAME,
+        'version' => APP_VERSION,
+        'env' => APP_ENV
+    ]
+];

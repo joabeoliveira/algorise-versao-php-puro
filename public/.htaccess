@@ -1,0 +1,16 @@
+# Definir arquivo índice padrão
+DirectoryIndex index.php index.html
+
+# Habilitar reescrita de URL
+RewriteEngine On
+
+# Redirecionar para index.php se o arquivo/diretório não existir
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Configurações de segurança
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>

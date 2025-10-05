@@ -1,8 +1,8 @@
 <?php
 
-use Joabe\Buscaprecos\Core\Router;
-
 namespace Joabe\Buscaprecos\Controller;
+
+use Joabe\Buscaprecos\Core\Router;
 
 class CotacaoPublicaController
 {

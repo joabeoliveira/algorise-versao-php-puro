@@ -13,13 +13,42 @@ class RelatorioController
     public function listar($params = [])
     {
         $pdo = \getDbConnection();
-        $stmt = $pdo->query("
-            SELECT nt.*, p.nome_processo, p.numero_processo
-            FROM notas_tecnicas nt
-            JOIN processos p ON nt.processo_id = p.id
-            ORDER BY nt.created_at DESC
-        ");
-        $relatorios = $stmt->fetchAll();
+        
+        // Primeiro verifica se a tabela existe e quais colunas tem
+        try {
+            $stmt = $pdo->query("SHOW TABLES LIKE 'notas_tecnicas'");
+            if ($stmt->rowCount() === 0) {
+                // Se a tabela não existe, retorna array vazio
+                $relatorios = [];
+            } else {
+                // Verifica quais colunas de data existem
+                $stmt = $pdo->query("DESCRIBE notas_tecnicas");
+                $columns = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+                
+                // Determina qual coluna de data usar para ordenação
+                $dateColumn = 'id'; // fallback para id se não houver coluna de data
+                if (in_array('created_at', $columns)) {
+                    $dateColumn = 'nt.created_at';
+                } elseif (in_array('data_criacao', $columns)) {
+                    $dateColumn = 'nt.data_criacao';
+                } elseif (in_array('data_geracao', $columns)) {
+                    $dateColumn = 'nt.data_geracao';
+                } else {
+                    $dateColumn = 'nt.id';
+                }
+                
+                $stmt = $pdo->query("
+                    SELECT nt.*, p.nome_processo, p.numero_processo
+                    FROM notas_tecnicas nt
+                    JOIN processos p ON nt.processo_id = p.id
+                    ORDER BY $dateColumn DESC
+                ");
+                $relatorios = $stmt->fetchAll();
+            }
+        } catch (\Exception $e) {
+            // Se houver erro, retorna array vazio e não quebra a página
+            $relatorios = [];
+        }
 
         $tituloPagina = "Relatórios Gerados";
         $paginaConteudo = __DIR__ . '/../View/relatorios/listar.php';
