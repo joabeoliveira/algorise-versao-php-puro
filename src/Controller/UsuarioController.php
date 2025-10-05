@@ -2,63 +2,95 @@
 
 namespace Joabe\Buscaprecos\Controller;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+use Joabe\Buscaprecos\Core\Router;
+use Joabe\Buscaprecos\Core\Mail;
 
 class UsuarioController
 {
-    // ... (outros métodos como exibirFormularioLogin, processarLogin, etc. permanecem iguais)
-    public function exibirFormularioLogin($request, $response, $args)
+    /**
+     * Exibe o formulário de login
+     */
+    public function exibirFormularioLogin($params = [])
     {
         ob_start();
         require __DIR__ . '/../View/usuarios/login.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
-    public function processarLogin($request, $response, $args)
+
+    /**
+     * Processa o login do usuário
+     */
+    public function processarLogin($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = Router::getPostData();
         $email = $dados['email'] ?? '';
         $senha = $dados['senha'] ?? '';
+
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
         $stmt->execute([$email]);
         $usuario = $stmt->fetch();
+
         if ($usuario && password_verify($senha, $usuario['senha'])) {
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
             $_SESSION['usuario_role'] = $usuario['role'];
-            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+            Router::redirect('/dashboard');
+            return;
         }
+
         $_SESSION['flash_error'] = 'E-mail ou senha inválidos.';
-        return $response->withHeader('Location', '/login')->withStatus(302);
+        Router::redirect('/login');
     }
-    public function processarLogout($request, $response, $args)
+
+    /**
+     * Processa o logout do usuário
+     */
+    public function processarLogout($params = [])
     {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
-        $_SESSION = [];
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params["path"], $params["domain"], $params["secure"], $params["httponly"]);
+        if (session_status() === PHP_SESSION_NONE) { 
+            session_start(); 
         }
+        
+        $_SESSION = [];
+        
+        if (ini_get("session.use_cookies")) {
+            $cookieParams = session_get_cookie_params();
+            setcookie(
+                session_name(), 
+                '', 
+                time() - 42000, 
+                $cookieParams["path"], 
+                $cookieParams["domain"], 
+                $cookieParams["secure"], 
+                $cookieParams["httponly"]
+            );
+        }
+        
         session_destroy();
-        return $response->withHeader('Location', '/login')->withStatus(302);
+        Router::redirect('/login');
     }
-    public function exibirFormularioEsqueceuSenha($request, $response, $args)
+
+    /**
+     * Exibe o formulário "Esqueceu a senha"
+     */
+    public function exibirFormularioEsqueceuSenha($params = [])
     {
         ob_start();
         require __DIR__ . '/../View/usuarios/esqueceu_senha.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
-    // --- MÉTODO solicitarRedefinicao CORRIGIDO ---
-    public function solicitarRedefinicao($request, $response, $args)
+    /**
+     * Processa a solicitação de redefinição de senha
+     */
+    public function solicitarRedefinicao($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = Router::getPostData();
         $email = $dados['email'] ?? '';
+
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
         $stmt->execute([$email]);
@@ -67,262 +99,336 @@ class UsuarioController
         if ($stmt->fetch()) {
             $token = bin2hex(random_bytes(32));
             $tokenHash = password_hash($token, PASSWORD_DEFAULT);
+            
             $sql = "REPLACE INTO password_resets (email, token, created_at) VALUES (?, ?, NOW())";
             $stmtToken = $pdo->prepare($sql);
             $stmtToken->execute([$email, $tokenHash]);
+            
             $resetLink = "http://{$_SERVER['HTTP_HOST']}/redefinir-senha?token={$token}&email=" . urlencode($email);
             
-            $mail = new PHPMailer(true);
+            // Usa o novo sistema de email
             try {
-                // Ativar o modo de depuração do PHPMailer (ajuda a encontrar o erro)
-                // $mail->SMTPDebug = \PHPMailer\SMTP::DEBUG_SERVER;
+                $emailBody = "
+                <h2>Redefinição de Senha - Algorise</h2>
+                <p>Você solicitou a redefinição de sua senha.</p>
+                <p>Clique no link abaixo para redefinir:</p>
+                <p><a href='{$resetLink}'>Redefinir Senha</a></p>
+                <p>Se você não solicitou esta redefinição, ignore este email.</p>
+                <p>Este link expira em 1 hora.</p>
+                ";
 
-                $mail->isSMTP();
-                $mail->Host       = $_ENV['MAIL_HOST'];
-                $mail->SMTPAuth   = true;
-                $mail->Username   = $_ENV['MAIL_USERNAME'];
-                $mail->Password   = $_ENV['MAIL_PASSWORD'];
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = (int)$_ENV['MAIL_PORT'];
-                $mail->CharSet    = 'UTF-8';
-                $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
-                $mail->addAddress($email);
-                $mail->isHTML(true);
-                $mail->Subject = 'Redefinição de Senha - Busca Preços AI';
-                $mail->Body    = "Olá,<br><br>Você solicitou a redefinição de sua senha. Clique no link abaixo para criar uma nova senha:<br><br><a href='{$resetLink}'>{$resetLink}</a><br><br>Este link é válido por uma hora.";
-                
-                $mail->send();
+                $emailEnviado = Mail::sendWithEnvConfig(
+                    $email,
+                    'Redefinição de Senha - Algorise',
+                    $emailBody,
+                    true // HTML
+                );
 
-                // Define a mensagem de SUCESSO e PARA a execução
-                $_SESSION['flash_message'] = 'Se o seu e-mail estiver cadastrado, um link de recuperação foi enviado.';
-                return $response->withHeader('Location', '/esqueceu-senha')->withStatus(302);
+                if ($emailEnviado) {
+                    $_SESSION['flash_success'] = 'Link de redefinição enviado para seu e-mail.';
+                } else {
+                    $_SESSION['flash_error'] = 'Erro ao enviar e-mail. Tente novamente.';
+                }
 
-            } catch (Exception $e) {
-                error_log("PHPMailer Error: " . $mail->ErrorInfo);
-                // Define a mensagem de ERRO e PARA a execução
-                $_SESSION['flash_message'] = 'ERRO: Não foi possível enviar o e-mail. Verifique suas credenciais no arquivo .env e a conexão. Detalhe técnico: ' . $mail->ErrorInfo;
-                return $response->withHeader('Location', '/esqueceu-senha')->withStatus(302);
+            } catch (\Exception $e) {
+                $_SESSION['flash_error'] = 'Erro no envio do e-mail: ' . $e->getMessage();
             }
+        } else {
+            // Sempre mostra a mesma mensagem (segurança)
+            $_SESSION['flash_success'] = 'Se o e-mail estiver cadastrado, você receberá as instruções.';
         }
-        
-        // Se o e-mail não existir, exibe a mesma mensagem padrão e para a execução
-        $_SESSION['flash_message'] = 'Se o seu e-mail estiver cadastrado, um link de recuperação foi enviado.';
-        return $response->withHeader('Location', '/esqueceu-senha')->withStatus(302);
+
+        Router::redirect('/login');
     }
-    
-    // ... (resto dos métodos: exibirFormularioRedefinir, processarRedefinicao, validarToken) ...
-    public function exibirFormularioRedefinir($request, $response, $args)
+
+    /**
+     * Exibe o formulário de redefinição de senha
+     */
+    public function exibirFormularioRedefinir($params = [])
     {
-        $params = $request->getQueryParams();
-        $token = $params['token'] ?? '';
-        $email = $params['email'] ?? '';
-        list($isValid, $erro) = $this->validarToken($email, $token);
+        $queryParams = Router::getQueryData();
+        $token = $queryParams['token'] ?? '';
+        $email = $queryParams['email'] ?? '';
+
+        if (empty($token) || empty($email)) {
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
+            Router::redirect('/login');
+            return;
+        }
+
+        // Verifica se o token é válido e não expirado
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("
+            SELECT token FROM password_resets 
+            WHERE email = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        ");
+        $stmt->execute([$email]);
+        $resetData = $stmt->fetch();
+
+        if (!$resetData || !password_verify($token, $resetData['token'])) {
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
+            Router::redirect('/login');
+            return;
+        }
+
+        // Exibe o formulário
         ob_start();
         require __DIR__ . '/../View/usuarios/redefinir_senha.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
-    public function processarRedefinicao($request, $response, $args)
-    {
-        $dados = $request->getParsedBody();
-        $token = $dados['token'] ?? '';
-        $email = $dados['email'] ?? '';
-        $senha = $dados['senha'] ?? '';
-        $senhaConfirm = $dados['senha_confirm'] ?? '';
-        list($isValid, $erro) = $this->validarToken($email, $token);
-        if (!$isValid) {
-            $_SESSION['flash_error'] = $erro;
-            return $response->withHeader('Location', '/login')->withStatus(302);
-        }
-        if ($senha !== $senhaConfirm || empty($senha)) {
-            $viewData = ['token' => $token, 'email' => $email, 'erro' => 'As senhas não conferem ou estão em branco.'];
-            ob_start();
-            extract($viewData);
-            require __DIR__ . '/../View/usuarios/redefinir_senha.php';
-            $view = ob_get_clean();
-            $response->getBody()->write($view);
-            return $response;
-        }
-        $novaSenhaHash = password_hash($senha, PASSWORD_DEFAULT);
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare("UPDATE usuarios SET senha = ? WHERE email = ?");
-        $stmt->execute([$novaSenhaHash, $email]);
-        $stmtDel = $pdo->prepare("DELETE FROM password_resets WHERE email = ?");
-        $stmtDel->execute([$email]);
-        $_SESSION['flash_success'] = 'Sua senha foi redefinida com sucesso! Você já pode fazer o login.';
-        return $response->withHeader('Location', '/login')->withStatus(302);
-    }
-    private function validarToken($email, $token): array
-    {
-        if (empty($email) || empty($token)) { return [false, 'Link inválido ou incompleto.']; }
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare("SELECT * FROM password_resets WHERE email = ?");
-        $stmt->execute([$email]);
-        $resetRequest = $stmt->fetch();
-        if (!$resetRequest || !password_verify($token, $resetRequest['token'])) {
-            return [false, 'Token inválido ou não encontrado. Por favor, solicite um novo link.'];
-        }
-        if (time() - strtotime($resetRequest['created_at']) > 3600) { // 1 hora de validade
-            return [false, 'Token expirado. Por favor, solicite um novo link.'];
-        }
-        return [true, null];
-    }
-
-    // --- INÍCIO DA FUNCIONALIDADE DE GERENCIAMENTO DE USUÁRIOS ---
 
     /**
-     * Lista todos os usuários cadastrados.
+     * Processa a redefinição de senha
      */
-    public function listar($request, $response, $args)
+    public function processarRedefinicao($params = [])
+    {
+        $dados = Router::getPostData();
+        $queryParams = Router::getQueryData();
+        
+        $token = $queryParams['token'] ?? '';
+        $email = $queryParams['email'] ?? '';
+        $novaSenha = $dados['nova_senha'] ?? '';
+        $confirmarSenha = $dados['confirmar_senha'] ?? '';
+
+        if (empty($token) || empty($email) || empty($novaSenha)) {
+            $_SESSION['flash_error'] = 'Dados incompletos.';
+            Router::redirect('/login');
+            return;
+        }
+
+        if ($novaSenha !== $confirmarSenha) {
+            $_SESSION['flash_error'] = 'As senhas não coincidem.';
+            Router::redirect("/redefinir-senha?token={$token}&email=" . urlencode($email));
+            return;
+        }
+
+        if (strlen($novaSenha) < 6) {
+            $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
+            Router::redirect("/redefinir-senha?token={$token}&email=" . urlencode($email));
+            return;
+        }
+
+        $pdo = \getDbConnection();
+
+        // Verifica o token novamente
+        $stmt = $pdo->prepare("
+            SELECT token FROM password_resets 
+            WHERE email = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        ");
+        $stmt->execute([$email]);
+        $resetData = $stmt->fetch();
+
+        if (!$resetData || !password_verify($token, $resetData['token'])) {
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
+            Router::redirect('/login');
+            return;
+        }
+
+        // Atualiza a senha
+        $senhaHash = password_hash($novaSenha, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("UPDATE usuarios SET senha = ? WHERE email = ?");
+        $stmt->execute([$senhaHash, $email]);
+
+        // Remove o token usado
+        $stmt = $pdo->prepare("DELETE FROM password_resets WHERE email = ?");
+        $stmt->execute([$email]);
+
+        $_SESSION['flash_success'] = 'Senha redefinida com sucesso! Faça login com sua nova senha.';
+        Router::redirect('/login');
+    }
+
+    /**
+     * Lista todos os usuários (apenas admin)
+     */
+    public function listar($params = [])
     {
         $pdo = \getDbConnection();
-        $stmt = $pdo->query("SELECT id, nome, email, role FROM usuarios ORDER BY nome ASC");
+        $stmt = $pdo->prepare("SELECT id, nome, email, role, created_at FROM usuarios ORDER BY nome");
+        $stmt->execute();
         $usuarios = $stmt->fetchAll();
 
-        $tituloPagina = "Gerenciamento de Usuários";
-        // Aponta para a nova view que vamos criar
-        $paginaConteudo = __DIR__ . '/../View/usuarios/lista.php';
-
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
-    }
-
-    /**
-     * Exibe o formulário para criar um novo usuário.
-     */
-    public function exibirFormularioCriacao($request, $response, $args)
-    {
-        $tituloPagina = "Adicionar Novo Usuário";
-        $paginaConteudo = __DIR__ . '/../View/usuarios/formulario.php'; // View de formulário que vamos criar
-
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
-    }
-
-    /**
-     * Processa os dados do formulário e cria um novo usuário no banco.
-     */
-    public function criar($request, $response, $args)
-    {
-        $dados = $request->getParsedBody();
-
-        // Validação básica
-        if (empty($dados['nome']) || empty($dados['email']) || empty($dados['senha'])) {
-            // Em uma aplicação real, usaríamos flash messages para erros
-            die("Nome, e-mail e senha são obrigatórios.");
-        }
-        if ($dados['senha'] !== $dados['senha_confirm']) {
-            die("As senhas não conferem.");
-        }
-
-        $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
-        $role = $dados['role'] ?? 'user';
-
-        $sql = "INSERT INTO usuarios (nome, email, senha, role) VALUES (?, ?, ?, ?)";
-        $pdo = \getDbConnection();
+        $tituloPagina = "Gerenciar Usuários";
+        $paginaConteudo = __DIR__ . '/../View/usuarios/listar.php';
         
-        try {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role]);
-        } catch (\PDOException $e) {
-            if ($e->getCode() == 23000) { // Erro de violação de chave única (e-mail duplicado)
-                die("Erro: O e-mail informado já está cadastrado.");
-            }
-            throw $e;
-        }
-
-        return $response->withHeader('Location', '/usuarios')->withStatus(302);
+        ob_start();
+        require __DIR__ . '/../View/layout/main.php';
+        $view = ob_get_clean();
+        echo $view;
     }
 
     /**
-     * Exclui um usuário do banco de dados.
+     * Exibe formulário de criação de usuário
      */
-    public function excluir($request, $response, $args)
+    public function exibirFormularioCriacao($params = [])
     {
-        $id = $args['id'];
+        $tituloPagina = "Novo Usuário";
+        $paginaConteudo = __DIR__ . '/../View/usuarios/criar.php';
+        
+        ob_start();
+        require __DIR__ . '/../View/layout/main.php';
+        $view = ob_get_clean();
+        echo $view;
+    }
+
+    /**
+     * Cria um novo usuário
+     */
+    public function criar($params = [])
+    {
+        $dados = Router::getPostData();
+
+        // Validações
+        if (empty($dados['nome']) || empty($dados['email']) || empty($dados['senha'])) {
+            $_SESSION['flash_error'] = 'Todos os campos são obrigatórios.';
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        if (!validarEmail($dados['email'])) {
+            $_SESSION['flash_error'] = 'E-mail inválido.';
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        if (strlen($dados['senha']) < 6) {
+            $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        $role = in_array($dados['role'] ?? '', ['admin', 'user']) ? $dados['role'] : 'user';
+        $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
+
+        $pdo = \getDbConnection();
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO usuarios (nome, email, senha, role) 
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role]);
+            
+            $_SESSION['flash_success'] = 'Usuário criado com sucesso!';
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) { // Erro de violação de chave única
+                $_SESSION['flash_error'] = 'E-mail já cadastrado.';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao criar usuário.';
+            }
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        Router::redirect('/usuarios');
+    }
+
+    /**
+     * Exibe formulário de edição de usuário
+     */
+    public function exibirFormularioEdicao($params = [])
+    {
+        $id = $params['id'] ?? 0;
+
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE id = ?");
+        $stmt->execute([$id]);
+        $usuario = $stmt->fetch();
+
+        if (!$usuario) {
+            $_SESSION['flash_error'] = 'Usuário não encontrado.';
+            Router::redirect('/usuarios');
+            return;
+        }
+
+        $tituloPagina = "Editar Usuário";
+        $paginaConteudo = __DIR__ . '/../View/usuarios/editar.php';
+        
+        ob_start();
+        require __DIR__ . '/../View/layout/main.php';
+        $view = ob_get_clean();
+        echo $view;
+    }
+
+    /**
+     * Atualiza um usuário existente
+     */
+    public function atualizar($params = [])
+    {
+        $id = $params['id'] ?? 0;
+        $dados = Router::getPostData();
+
+        // Validações
+        if (empty($dados['nome']) || empty($dados['email'])) {
+            $_SESSION['flash_error'] = 'Nome e e-mail são obrigatórios.';
+            Router::redirect("/usuarios/{$id}/editar");
+            return;
+        }
+
+        if (!validarEmail($dados['email'])) {
+            $_SESSION['flash_error'] = 'E-mail inválido.';
+            Router::redirect("/usuarios/{$id}/editar");
+            return;
+        }
+
+        $role = in_array($dados['role'] ?? '', ['admin', 'user']) ? $dados['role'] : 'user';
+        $pdo = \getDbConnection();
+
+        try {
+            // Se uma nova senha foi fornecida
+            if (!empty($dados['senha'])) {
+                if (strlen($dados['senha']) < 6) {
+                    $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
+                    Router::redirect("/usuarios/{$id}/editar");
+                    return;
+                }
+                
+                $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("
+                    UPDATE usuarios SET nome = ?, email = ?, senha = ?, role = ? WHERE id = ?
+                ");
+                $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role, $id]);
+            } else {
+                // Atualiza sem alterar a senha
+                $stmt = $pdo->prepare("
+                    UPDATE usuarios SET nome = ?, email = ?, role = ? WHERE id = ?
+                ");
+                $stmt->execute([$dados['nome'], $dados['email'], $role, $id]);
+            }
+            
+            $_SESSION['flash_success'] = 'Usuário atualizado com sucesso!';
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $_SESSION['flash_error'] = 'E-mail já cadastrado para outro usuário.';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao atualizar usuário.';
+            }
+            Router::redirect("/usuarios/{$id}/editar");
+            return;
+        }
+
+        Router::redirect('/usuarios');
+    }
+
+    /**
+     * Exclui um usuário
+     */
+    public function excluir($params = [])
+    {
+        $id = $params['id'] ?? 0;
 
         // Impede que o usuário se auto-exclua
         if ($id == $_SESSION['usuario_id']) {
-            die("Você não pode excluir o seu próprio usuário.");
+            $_SESSION['flash_error'] = 'Você não pode excluir seu próprio usuário.';
+            Router::redirect('/usuarios');
+            return;
         }
 
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
         $stmt->execute([$id]);
 
-        return $response->withHeader('Location', '/usuarios')->withStatus(302);
+        $_SESSION['flash_success'] = 'Usuário excluído com sucesso!';
+        Router::redirect('/usuarios');
     }
-
-    /**
-     * Exibe o formulário de edição para um usuário específico.
-     */
-    public function exibirFormularioEdicao($request, $response, $args)
-    {
-        $id = $args['id'];
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare("SELECT id, nome, email, role FROM usuarios WHERE id = ?");
-        $stmt->execute([$id]);
-        $usuario = $stmt->fetch();
-
-        if (!$usuario) {
-            // Lidar com usuário não encontrado
-            return $response->withHeader('Location', '/usuarios')->withStatus(404);
-        }
-
-        $tituloPagina = "Editar Usuário";
-        // Aponta para a nova view de edição que vamos criar
-        $paginaConteudo = __DIR__ . '/../View/usuarios/formulario_edicao.php';
-
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
-    }
-
-    /**
-     * Processa os dados do formulário e atualiza um usuário no banco.
-     */
-    public function atualizar($request, $response, $args)
-    {
-        $id = $args['id'];
-        $dados = $request->getParsedBody();
-
-        $nome = $dados['nome'];
-        $email = $dados['email'];
-        $role = $dados['role'];
-        $senha = $dados['senha'];
-
-        $sql = "UPDATE usuarios SET nome = ?, email = ?, role = ?";
-        $params = [$nome, $email, $role];
-
-        // Se o campo de senha não estiver vazio, atualiza a senha
-        if (!empty($senha)) {
-            if ($senha !== $dados['senha_confirm']) {
-                die("As senhas não conferem.");
-            }
-            $sql .= ", senha = ?";
-            $params[] = password_hash($senha, PASSWORD_DEFAULT);
-        }
-
-        $sql .= " WHERE id = ?";
-        $params[] = $id;
-
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-
-        return $response->withHeader('Location', '/usuarios')->withStatus(302);
-    }
-
-    // --- FIM DA FUNCIONALIDADE DE GERENCIAMENTO DE USUÁRIOS ---
-
-
 }

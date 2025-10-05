@@ -1,5 +1,7 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -9,7 +11,7 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
 class ItemController
 {
-    public function listar($request, $response, $args)
+    public function listar($params = [])
     {
         $processo_id = $args['processo_id'];
         $pdo = \getDbConnection();
@@ -43,15 +45,14 @@ class ItemController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     // NOVO MÉTODO: Salva o novo item no banco de dados
-    public function criar($request, $response, $args)
+    public function criar($params = [])
 {
     $processo_id = $args['processo_id'];
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $pdo = \getDbConnection();
     $redirectUrl = "/processos/{$processo_id}/itens"; // URL de redirecionamento padrão
 
@@ -88,7 +89,7 @@ class ItemController
 
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 }
-    public function exibirFormularioEdicao($request, $response, $args)
+    public function exibirFormularioEdicao($params = [])
     {
         $processo_id = $args['processo_id'];
     $item_id = $args['item_id'];
@@ -117,16 +118,15 @@ class ItemController
     require __DIR__ . '/../View/layout/main.php';
     $view = ob_get_clean();
 
-    $response->getBody()->write($view);
-    return $response;
+    echo $view;
     }
 
     // NOVO MÉTODO: Recebe os dados do formulário e atualiza o item no banco
-    public function atualizar($request, $response, $args)
+    public function atualizar($params = [])
 {
     $processo_id = $args['processo_id'];
     $item_id = $args['item_id'];
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $pdo = \getDbConnection();
 
     // --- INÍCIO DA VALIDAÇÃO ANTI-DUPLICIDADE NA EDIÇÃO ---
@@ -167,12 +167,12 @@ class ItemController
         $processo_id
     ]);
     // Redireciona de volta para a lista de itens do processo
-    return $response->withHeader('Location', "/processos/{$processo_id}/itens")->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect('/processos/{$processo_id}/itens'); return;
 
 }
 
     // NOVO MÉTODO: Processa a exclusão de um item
-    public function excluir($request, $response, $args)
+    public function excluir($params = [])
 {
     $processo_id = $args['processo_id'];
     $item_id = $args['item_id'];
@@ -184,14 +184,14 @@ class ItemController
     $stmt->execute([$item_id, $processo_id]);
 
     // Redireciona de volta para a lista de itens do processo
-    return $response->withHeader('Location', "/processos/{$processo_id}/itens")->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect('/processos/{$processo_id}/itens'); return;
 
 }
 
     //     MÉTODOS PARA IMPORTAÇÃO DE ITENS
     // ===============================================
 
-    public function exibirFormularioImportacao($request, $response, $args)
+    public function exibirFormularioImportacao($params = [])
     {
         $processo_id = $args['processo_id'];
         $pdo = \getDbConnection();
@@ -203,7 +203,7 @@ class ItemController
         $stmtCount = $pdo->prepare("SELECT COUNT(id) as total FROM itens WHERE processo_id = ?");
         $stmtCount->execute([$processo_id]);
         if ($stmtCount->fetchColumn() > 0) {
-            return $response->withHeader('Location', "/processos/$processo_id/itens")->withStatus(302);
+            \Joabe\Buscaprecos\Core\Router::redirect('/processos/$processo_id/itens'); return;
         }
 
         $tituloPagina = "Importar Itens";
@@ -211,11 +211,10 @@ class ItemController
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
-    public function processarImportacao($request, $response, $args)
+    public function processarImportacao($params = [])
 {
     $processo_id = $args['processo_id'];
     $uploadedFiles = $request->getUploadedFiles();
@@ -301,10 +300,10 @@ class ItemController
     }
     
     $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => "Importação concluída! " . count($linhasParaImportar) . " itens foram adicionados com sucesso ao processo."];
-    return $response->withHeader('Location', "/processos/$processo_id/itens")->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect('/processos/$processo_id/itens'); return;
 }
 
-    public function gerarModeloPlanilha($request, $response, $args)
+    public function gerarModeloPlanilha($params = [])
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();

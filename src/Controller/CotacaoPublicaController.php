@@ -1,5 +1,7 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 class CotacaoPublicaController
@@ -7,7 +9,7 @@ class CotacaoPublicaController
     /**
      * Exibe o formulário de cotação para o fornecedor.
      */
-    public function exibirFormulario($request, $response, $args)
+    public function exibirFormulario($params = [])
     {
         $token = $request->getQueryParams()['token'] ?? null;
         if (!$token) {
@@ -67,16 +69,15 @@ class CotacaoPublicaController
         require __DIR__ . '/../View/layout/public.php'; 
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**
      * Salva a resposta de cotação do fornecedor.
      */
-    public function salvarResposta($request, $response, $args)
+    public function salvarResposta($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $arquivos = $request->getUploadedFiles(); // Pega os arquivos enviados
         $token = $dados['token'] ?? null;
         $precos = $dados['precos'] ?? [];
@@ -173,8 +174,7 @@ class CotacaoPublicaController
         ob_start();
         require __DIR__ . '/../View/layout/public.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**

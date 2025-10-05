@@ -2,6 +2,8 @@ version: '3.8'
 
 services:
   app:
+    # Adicionei esta linha para nomear a sua imagem
+    image: joabeoliveiraof/algorise:1.0.1 
     build:
       context: .
       dockerfile: ./docker/php/Dockerfile

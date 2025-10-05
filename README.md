@@ -128,8 +128,14 @@ docker-compose -f docker-compose.dev.yml logs -f
 docker exec -it buscaprecos-main-app-1 sh
 
 # Backup do banco
-docker exec buscaprecos-main-db-1 mysqldump -u root -p buscaprecos > backup_$(date +%Y%m%d).sql
+docker exec db_db.1.fsj9ro7t25vgne46puzabtfxy mysqldump -u root -pbusca_password  buscaprecos > backup_$(date +%Y%m%d).sql
 ```
+
+volume atual do db 	db_db.1.fsj9ro7t25vgne46puzabtfxy
+nome banco de dados buscaprecos
+
+senha root db root_password_123
+
 
 ### **Composer (no container)**
 ```bash

@@ -1,5 +1,7 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 class AnaliseController
@@ -7,7 +9,7 @@ class AnaliseController
     /**
      * Exibe a "Mesa de Análise" para todos os itens de um processo.
      */
-    public function exibirAnaliseProcesso($request, $response, $args)
+    public function exibirAnaliseProcesso($params = [])
     {
         $processo_id = $args['processo_id'];
         $pdo = \getDbConnection();
@@ -100,8 +102,7 @@ class AnaliseController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**
@@ -136,7 +137,7 @@ class AnaliseController
 
 // Em src/Controller/AnaliseController.php
 
-public function salvarAnaliseItem($request, $response, $args)
+public function salvarAnaliseItem($params = [])
 {
     // Adiciona este cabeçalho para garantir que a resposta seja sempre JSON
     $response = $response->withHeader('Content-Type', 'application/json');
@@ -144,7 +145,7 @@ public function salvarAnaliseItem($request, $response, $args)
 
     try {
         $item_id = $args['item_id'];
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
         if (!isset($dados['metodologia_estimativa']) || !isset($dados['justificativa_estimativa'])) {
             return $response->withJson([
@@ -219,13 +220,13 @@ public function salvarAnaliseItem($request, $response, $args)
      * Salva as justificativas gerais do processo, como a justificativa
      * pela não utilização de fontes prioritárias.
      */
-    public function salvarJustificativasProcesso($request, $response, $args)
+    public function salvarJustificativasProcesso($params = [])
     {
         // 1. Pega o ID do processo vindo da URL
         $processo_id = $args['id'];
         
         // 2. Pega os dados que foram enviados pelo formulário
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $justificativaFontes = $dados['justificativa_fontes'] ?? null;
 
         // 3. Prepara a query SQL para atualizar a tabela 'processos'

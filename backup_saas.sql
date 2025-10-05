@@ -21,8 +21,8 @@
 --
 
 DROP TABLE IF EXISTS `cotacoes_rapidas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+!40101 SET @saved_cs_client     = @@character_set_client;
+!40101 SET character_set_client = utf8mb4 ;
 CREATE TABLE `cotacoes_rapidas` (
   `id` int NOT NULL AUTO_INCREMENT,
   `titulo` varchar(255) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE `cotacoes_rapidas` (
   `criada_em` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+!40101 SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `cotacoes_rapidas`

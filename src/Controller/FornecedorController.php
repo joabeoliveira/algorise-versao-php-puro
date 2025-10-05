@@ -2,17 +2,15 @@
 
 namespace Joabe\Buscaprecos\Controller;
 
-// 'USE' para importar arquivos em massa para fornecedores
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use Slim\Http\UploadedFile;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Writer\Csv;
-use PhpOffice\PhpSpreadsheet\Cell\DataType; 
+use Joabe\Buscaprecos\Core\Router;
+use Joabe\Buscaprecos\Core\Spreadsheet;
 
 class FornecedorController
 {
-    public function listar($request, $response, $args)
+    /**
+     * Lista todos os fornecedores
+     */
+    public function listar($params = [])
     {
         $pdo = \getDbConnection();
         $stmt = $pdo->query("SELECT * FROM fornecedores ORDER BY razao_social ASC");
@@ -24,12 +22,13 @@ class FornecedorController
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
-    public function exibirFormulario($request, $response, $args)
+    /**
+     * Exibe o formulário para novo fornecedor
+     */
+    public function exibirFormulario($params = [])
     {
         $tituloPagina = "Novo Fornecedor";
         $paginaConteudo = __DIR__ . '/../View/fornecedores/formulario.php';
@@ -37,137 +36,126 @@ class FornecedorController
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
-    public function criar($request, $response, $args)
+    /**
+     * Cria um novo fornecedor
+     */
+    public function criar($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = Router::getPostData();
 
-        // --- INÍCIO DA CORREÇÃO ---
+        // Limpa CNPJ e telefone
         $cnpjLimpo = preg_replace('/\D/', '', $dados['cnpj']);
         $telefoneLimpo = preg_replace('/\D/', '', $dados['telefone'] ?? '');
-        // --- FIM DA CORREÇÃO ---
-        // Verifica se o CNPJ já está cadastrado        
-        $sql = "INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade) VALUES (?, ?, ?, ?, ?, ?)";
-    
-    $pdo = \getDbConnection();
-    $stmt = $pdo->prepare($sql);
-    
-    try {
-        $stmt->execute([
-            $dados['razao_social'],
-            $dados['cnpj'],
-            $dados['email'],
-            $dados['endereco'] ?? null, // Salva o novo campo de endereço
-            $dados['telefone'] ?? null,
-            $dados['ramo_atividade'] ?? null
-        ]);
-        } catch (\PDOException $e) {
-            // Tratar erro de CNPJ duplicado
-            if ($e->getCode() == 23000) { 
-                // Você pode implementar uma flash message de erro aqui
-                die("Erro: O CNPJ informado já está cadastrado.");
-            }
-            throw $e;
+
+        // Validações
+        if (empty($dados['razao_social']) || empty($dados['cnpj']) || empty($dados['email'])) {
+            $_SESSION['flash_error'] = 'Razão social, CNPJ e e-mail são obrigatórios.';
+            Router::redirect('/fornecedores/novo');
+            return;
         }
 
-        return $response->withHeader('Location', '/fornecedores')->withStatus(302);
-    }
-
-    /* Retorna a lista de fornecedores em formato JSON para a API. */
-
-    public function listarJson($request, $response, $args)
-    {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("SELECT id, razao_social, ramo_atividade FROM fornecedores ORDER BY razao_social ASC");
-        $fornecedores = $stmt->fetchAll();
-
-        return $response->withJson($fornecedores);
-    }
-
-    public function listarRamosAtividade($request, $response, $args)
-    {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("SELECT DISTINCT ramo_atividade FROM fornecedores WHERE ramo_atividade IS NOT NULL AND ramo_atividade != ''");
-        $ramosDb = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-
-        $ramosUnicos = [];
-        foreach ($ramosDb as $ramoString) {
-            $ramos = array_map('trim', explode(',', $ramoString));
-            $ramosUnicos = array_merge($ramosUnicos, $ramos);
+        if (!validarCnpj($cnpjLimpo)) {
+            $_SESSION['flash_error'] = 'CNPJ inválido.';
+            Router::redirect('/fornecedores/novo');
+            return;
         }
 
-        $ramosUnicos = array_unique(array_filter($ramosUnicos));
-        sort($ramosUnicos);
-
-        return $response->withJson($ramosUnicos);
-    }
-
-    /**
-     * Lista fornecedores, opcionalmente filtrando por ramo de atividade.
-     */
-    public function listarPorRamo($request, $response, $args)
-    {
-        $params = $request->getQueryParams();
-        $ramo = $params['ramo'] ?? 'todos';
-
-        $pdo = \getDbConnection();
-        $sql = "SELECT id, razao_social FROM fornecedores";
-
-        if ($ramo !== 'todos') {
-            $sql .= " WHERE ramo_atividade LIKE ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(["%{$ramo}%"]);
-        } else {
-            $stmt = $pdo->query($sql);
+        if (!validarEmail($dados['email'])) {
+            $_SESSION['flash_error'] = 'E-mail inválido.';
+            Router::redirect('/fornecedores/novo');
+            return;
         }
+
+        $sql = "INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade) 
+                VALUES (?, ?, ?, ?, ?, ?)";
         
-        $fornecedores = $stmt->fetchAll();
-        return $response->withJson($fornecedores);
+        $pdo = \getDbConnection();
+        
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                $dados['razao_social'],
+                $cnpjLimpo,
+                $dados['email'],
+                $dados['endereco'] ?? null,
+                $telefoneLimpo ?: null,
+                $dados['ramo_atividade'] ?? null
+            ]);
+            
+            $_SESSION['flash_success'] = 'Fornecedor cadastrado com sucesso!';
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) { // Violação de chave única
+                $_SESSION['flash_error'] = 'CNPJ ou e-mail já cadastrado.';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao cadastrar fornecedor.';
+            }
+            Router::redirect('/fornecedores/novo');
+            return;
+        }
+
+        Router::redirect('/fornecedores');
     }
 
     /**
-     * Exibe o formulário de edição para um fornecedor específico.
+     * Exibe formulário de edição
      */
-
-    public function exibirFormularioEdicao($request, $response, $args)
+    public function exibirFormularioEdicao($params = [])
     {
-        $id = $args['id'];
+        $id = $params['id'] ?? 0;
+
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("SELECT * FROM fornecedores WHERE id = ?");
         $stmt->execute([$id]);
         $fornecedor = $stmt->fetch();
 
         if (!$fornecedor) {
-            // Idealmente, redirecionar ou mostrar uma página de erro
-            $response->getBody()->write("Fornecedor não encontrado.");
-            return $response->withStatus(404);
+            $_SESSION['flash_error'] = 'Fornecedor não encontrado.';
+            Router::redirect('/fornecedores');
+            return;
         }
 
         $tituloPagina = "Editar Fornecedor";
-        $paginaConteudo = __DIR__ . '/../View/fornecedores/formulario_edicao.php';
+        $paginaConteudo = __DIR__ . '/../View/fornecedores/editar.php';
 
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**
-     * Salva as alterações de um fornecedor no banco de dados.
+     * Atualiza um fornecedor existente
      */
-    public function atualizar($request, $response, $args)
+    public function atualizar($params = [])
     {
-        $id = $args['id'];
-        $dados = $request->getParsedBody();
+        $id = $params['id'] ?? 0;
+        $dados = Router::getPostData();
 
+        // Limpa CNPJ e telefone
         $cnpjLimpo = preg_replace('/\D/', '', $dados['cnpj']);
         $telefoneLimpo = preg_replace('/\D/', '', $dados['telefone'] ?? '');
+
+        // Validações
+        if (empty($dados['razao_social']) || empty($dados['cnpj']) || empty($dados['email'])) {
+            $_SESSION['flash_error'] = 'Razão social, CNPJ e e-mail são obrigatórios.';
+            Router::redirect("/fornecedores/{$id}/editar");
+            return;
+        }
+
+        if (!validarCnpj($cnpjLimpo)) {
+            $_SESSION['flash_error'] = 'CNPJ inválido.';
+            Router::redirect("/fornecedores/{$id}/editar");
+            return;
+        }
+
+        if (!validarEmail($dados['email'])) {
+            $_SESSION['flash_error'] = 'E-mail inválido.';
+            Router::redirect("/fornecedores/{$id}/editar");
+            return;
+        }
 
         $sql = "UPDATE fornecedores SET 
                     razao_social = ?, 
@@ -179,41 +167,65 @@ class FornecedorController
                 WHERE id = ?";
         
         $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
         
-        $stmt->execute([
-            $dados['razao_social'],
-            $dados['cnpj'],
-            $dados['email'],
-            $dados['endereco'] ?? null,
-            $dados['telefone'] ?? null,
-            $dados['ramo_atividade'] ?? null,
-            $id
-        ]);
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                $dados['razao_social'],
+                $cnpjLimpo,
+                $dados['email'],
+                $dados['endereco'] ?? null,
+                $telefoneLimpo ?: null,
+                $dados['ramo_atividade'] ?? null,
+                $id
+            ]);
+            
+            $_SESSION['flash_success'] = 'Fornecedor atualizado com sucesso!';
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $_SESSION['flash_error'] = 'CNPJ ou e-mail já cadastrado para outro fornecedor.';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao atualizar fornecedor.';
+            }
+            Router::redirect("/fornecedores/{$id}/editar");
+            return;
+        }
 
-        return $response->withHeader('Location', '/fornecedores')->withStatus(302);
+        Router::redirect('/fornecedores');
     }
 
     /**
-     * Exclui um fornecedor do banco de dados.
+     * Exclui um fornecedor
      */
-    public function excluir($request, $response, $args)
+    public function excluir($params = [])
     {
-        $id = $args['id'];
+        $id = $params['id'] ?? 0;
+
         $pdo = \getDbConnection();
         
-        // Cuidado: Em uma aplicação real, você pode querer verificar se o fornecedor
-        // não está associado a nenhuma cotação antes de excluir.
+        // Verifica se o fornecedor tem preços vinculados
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM precos WHERE fornecedor_id = ?");
+        $stmt->execute([$id]);
+        $resultado = $stmt->fetch();
+
+        if ($resultado['total'] > 0) {
+            $_SESSION['flash_error'] = 'Não é possível excluir: fornecedor possui preços cadastrados.';
+            Router::redirect('/fornecedores');
+            return;
+        }
+
+        // Exclui o fornecedor
         $stmt = $pdo->prepare("DELETE FROM fornecedores WHERE id = ?");
         $stmt->execute([$id]);
 
-        return $response->withHeader('Location', '/fornecedores')->withStatus(302);
+        $_SESSION['flash_success'] = 'Fornecedor excluído com sucesso!';
+        Router::redirect('/fornecedores');
     }
 
     /**
-     * Exibe o formulário para importação de fornecedores.
+     * Exibe formulário de importação de planilha
      */
-    public function exibirFormularioImportacao($request, $response, $args)
+    public function exibirFormularioImportacao($params = [])
     {
         $tituloPagina = "Importar Fornecedores";
         $paginaConteudo = __DIR__ . '/../View/fornecedores/importar.php';
@@ -221,158 +233,275 @@ class FornecedorController
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**
-     * Processa a planilha enviada para importar fornecedores em massa.
+     * Processa a importação de fornecedores via planilha
      */
-    public function processarImportacao($request, $response, $args)
+    public function processarImportacao($params = [])
     {
-        $uploadedFiles = $request->getUploadedFiles();
-        $arquivoPlanilha = $uploadedFiles['arquivo_planilha'] ?? null;
-
-        // 1. Validação inicial do upload
-        if (!$arquivoPlanilha || $arquivoPlanilha->getError() !== UPLOAD_ERR_OK) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro no upload do arquivo. Verifique se o arquivo foi selecionado e tente novamente.'];
-            return $response->withHeader('Location', '/fornecedores/importar')->withStatus(302);
+        if (!isset($_FILES['planilha']) || $_FILES['planilha']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_error'] = 'Erro no upload do arquivo.';
+            Router::redirect('/fornecedores/importar');
+            return;
         }
 
-        $pdo = \getDbConnection();
-        $sql = "INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade) VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
+        // Processa o upload
+        $uploadResult = Spreadsheet::processUpload($_FILES['planilha'], ['csv', 'xlsx', 'xls']);
         
-        $sucesso = 0;
-        $erros = 0;
-        $linhasComErro = [];
+        if (!$uploadResult['success']) {
+            $_SESSION['flash_error'] = implode(', ', $uploadResult['errors']);
+            Router::redirect('/fornecedores/importar');
+            return;
+        }
 
         try {
-            // 2. Carrega a planilha usando a biblioteca PhpSpreadsheet
-            $spreadsheet = IOFactory::load($arquivoPlanilha->getStream()->getMetadata('uri'));
-            $sheet = $spreadsheet->getActiveSheet();
+            // Carrega a planilha
+            if ($uploadResult['extension'] === 'csv') {
+                $spreadsheet = Spreadsheet::loadFromCsv($uploadResult['path']);
+            } else {
+                // Para Excel, tenta converter para CSV primeiro
+                $spreadsheet = Spreadsheet::loadFromExcel($uploadResult['path']);
+            }
+
+            $dados = $spreadsheet->getData();
+            $headers = $spreadsheet->getHeaders();
+
+            // Valida headers obrigatórios
+            $headersObrigatorios = ['razao_social', 'cnpj', 'email'];
+            $headersEncontrados = array_map('strtolower', $headers);
             
-            $pdo->beginTransaction();
-
-            // 3. Itera sobre cada linha da planilha, começando da segunda (para pular o cabeçalho)
-            foreach ($sheet->getRowIterator(2) as $row) {
-                $cellIterator = $row->getCellIterator();
-                $cellIterator->setIterateOnlyExistingCells(false); // Garante que células vazias sejam lidas
-                $cells = [];
-                foreach ($cellIterator as $cell) {
-                    $cells[] = $cell->getValue();
-                }
-
-                // 4. Mapeia as células para as variáveis, limpando os dados
-                $razaoSocial = trim($cells[0] ?? '');
-                $cnpj        = preg_replace('/\D/', '', trim($cells[1] ?? '')); // Remove caracteres não numéricos do CNPJ
-                $email       = trim($cells[2] ?? '');
-                
-                // Validação mínima para os campos obrigatórios
-                if (empty($razaoSocial) || empty($cnpj) || empty($email)) {
-                    $erros++;
-                    $linhasComErro[] = $row->getRowIndex();
-                    continue; // Pula esta linha e vai para a próxima
-                }
-
-                $endereco    = trim($cells[3] ?? null);
-                $telefone    = preg_replace('/\D/', '', trim($cells[4] ?? '')); // Remove caracteres não numéricos do Telefone
-                $ramo        = trim($cells[5] ?? null);
-
-                // 5. Tenta inserir no banco de dados
-                try {
-                    $stmt->execute([$razaoSocial, $cnpj, $email, $endereco, $telefone, $ramo]);
-                    $sucesso++;
-                } catch (\PDOException $e) {
-                    // Captura erros como CNPJ duplicado e conta como erro
-                    $erros++;
-                    $linhasComErro[] = $row->getRowIndex();
+            foreach ($headersObrigatorios as $header) {
+                if (!in_array(strtolower($header), $headersEncontrados)) {
+                    $_SESSION['flash_error'] = "Coluna obrigatória não encontrada: {$header}";
+                    Router::redirect('/fornecedores/importar');
+                    return;
                 }
             }
-            
-            $pdo->commit(); // Confirma a transação se tudo correu bem
+
+            // Processa os dados
+            $pdo = \getDbConnection();
+            $sucessos = 0;
+            $erros = 0;
+            $errosDetalhes = [];
+
+            $stmt = $pdo->prepare("
+                INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                razao_social = VALUES(razao_social),
+                email = VALUES(email),
+                endereco = VALUES(endereco),
+                telefone = VALUES(telefone),
+                ramo_atividade = VALUES(ramo_atividade)
+            ");
+
+            foreach ($dados as $linha => $fornecedor) {
+                try {
+                    // Mapeia os campos (case-insensitive)
+                    $razaoSocial = '';
+                    $cnpj = '';
+                    $email = '';
+                    $endereco = '';
+                    $telefone = '';
+                    $ramoAtividade = '';
+
+                    foreach ($fornecedor as $campo => $valor) {
+                        $campoLower = strtolower($campo);
+                        switch ($campoLower) {
+                            case 'razao_social':
+                            case 'razão_social':
+                            case 'empresa':
+                            case 'nome':
+                                $razaoSocial = trim($valor);
+                                break;
+                            case 'cnpj':
+                                $cnpj = preg_replace('/\D/', '', $valor);
+                                break;
+                            case 'email':
+                            case 'e-mail':
+                                $email = trim($valor);
+                                break;
+                            case 'endereco':
+                            case 'endereço':
+                            case 'address':
+                                $endereco = trim($valor);
+                                break;
+                            case 'telefone':
+                            case 'phone':
+                            case 'tel':
+                                $telefone = preg_replace('/\D/', '', $valor);
+                                break;
+                            case 'ramo_atividade':
+                            case 'ramo':
+                            case 'atividade':
+                                $ramoAtividade = trim($valor);
+                                break;
+                        }
+                    }
+
+                    // Validações
+                    if (empty($razaoSocial) || empty($cnpj) || empty($email)) {
+                        $erros++;
+                        $errosDetalhes[] = "Linha " . ($linha + 2) . ": Dados obrigatórios em branco";
+                        continue;
+                    }
+
+                    if (!validarCnpj($cnpj)) {
+                        $erros++;
+                        $errosDetalhes[] = "Linha " . ($linha + 2) . ": CNPJ inválido ({$cnpj})";
+                        continue;
+                    }
+
+                    if (!validarEmail($email)) {
+                        $erros++;
+                        $errosDetalhes[] = "Linha " . ($linha + 2) . ": E-mail inválido ({$email})";
+                        continue;
+                    }
+
+                    // Insere/atualiza no banco
+                    $stmt->execute([
+                        $razaoSocial,
+                        $cnpj,
+                        $email,
+                        $endereco ?: null,
+                        $telefone ?: null,
+                        $ramoAtividade ?: null
+                    ]);
+
+                    $sucessos++;
+
+                } catch (\Exception $e) {
+                    $erros++;
+                    $errosDetalhes[] = "Linha " . ($linha + 2) . ": " . $e->getMessage();
+                }
+            }
+
+            // Remove arquivo temporário
+            unlink($uploadResult['path']);
+
+            // Monta mensagem de resultado
+            $mensagem = "Importação concluída! {$sucessos} fornecedores processados";
+            if ($erros > 0) {
+                $mensagem .= ", {$erros} erros encontrados";
+                if (count($errosDetalhes) <= 5) {
+                    $mensagem .= ": " . implode('; ', $errosDetalhes);
+                } else {
+                    $mensagem .= ". Primeiros erros: " . implode('; ', array_slice($errosDetalhes, 0, 3));
+                }
+            }
+
+            if ($erros > 0 && $sucessos === 0) {
+                $_SESSION['flash_error'] = $mensagem;
+            } else {
+                $_SESSION['flash_success'] = $mensagem;
+            }
 
         } catch (\Exception $e) {
-            // Desfaz a transação em caso de erro na leitura da planilha
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao processar a planilha: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/fornecedores/importar')->withStatus(302);
-        }
-        
-        // 6. Prepara a mensagem de feedback para o usuário
-        $mensagem = "Importação concluída!\n\nFornecedores adicionados com sucesso: {$sucesso}";
-        if ($erros > 0) {
-            $mensagem .= "\nLinhas com erro ou ignoradas (ex: CNPJ duplicado): {$erros}";
-            $mensagem .= "\n(Referente às linhas da planilha: " . implode(', ', $linhasComErro) . ")";
+            $_SESSION['flash_error'] = 'Erro ao processar planilha: ' . $e->getMessage();
         }
 
-        $_SESSION['flash'] = ['tipo' => ($erros > 0 ? 'warning' : 'success'), 'mensagem' => $mensagem];
-        return $response->withHeader('Location', '/fornecedores/importar')->withStatus(302);
+        Router::redirect('/fornecedores');
     }
 
     /**
-     * Gera e força o download de uma planilha .xlsx de modelo para importação.
+     * Gera modelo de planilha para download
      */
-    public function gerarModeloPlanilha($request, $response, $args)
+    public function gerarModeloPlanilha($params = [])
     {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Modelo de Fornecedores');
-
-        // Define o cabeçalho
-        $sheet->setCellValue('A1', 'Razão Social (Obrigatório)');
-        $sheet->setCellValue('B1', 'CNPJ (Obrigatório, apenas números)');
-        $sheet->setCellValue('C1', 'E-mail (Obrigatório)');
-        $sheet->setCellValue('D1', 'Endereço Completo');
-        $sheet->setCellValue('E1', 'Telefone');
-        $sheet->setCellValue('F1', 'Ramo de Atividade (separado por vírgula)');
-
-        // Adiciona um exemplo na linha 2 para guiar o usuário
-        $sheet->setCellValue('A2', 'Empresa Exemplo LTDA');
-        $sheet->setCellValueExplicit('B2','11222333000199',DataType::TYPE_STRING);
-        $sheet->setCellValue('C2', 'contato@empresaexemplo.com.br');
-        $sheet->setCellValue('D2', 'Rua das Flores, 123, Centro, São Paulo - SP');
-        $sheet->setCellValue('E2', '11987654321');
-        $sheet->setCellValue('F2', 'Material de escritório, Informática');
-
-        // Aplica estilo ao cabeçalho
-        $headerStyle = [
-            'font' => ['bold' => true],
-            'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FFDDDDDD'],
-            ],
+        $headers = [
+            'razao_social',
+            'cnpj', 
+            'email',
+            'endereco',
+            'telefone',
+            'ramo_atividade'
         ];
-        $sheet->getStyle('A1:F1')->applyFromArray($headerStyle);
 
-        // Ajusta a largura das colunas automaticamente
-        foreach (range('A', 'F') as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        $dadosExemplo = [
+            [
+                'Empresa Exemplo LTDA',
+                '12.345.678/0001-90',
+                'contato@empresa.com.br',
+                'Rua das Flores, 123 - Centro - Cidade/UF',
+                '(11) 99999-9999',
+                'Comércio de Materiais'
+            ]
+        ];
+
+        $tempFile = Spreadsheet::generateTemplate($headers, $dadosExemplo);
+
+        // Headers para download
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment; filename="modelo_fornecedores.csv"');
+        header('Content-Length: ' . filesize($tempFile));
+
+        // Output do arquivo
+        readfile($tempFile);
+
+        // Remove arquivo temporário
+        unlink($tempFile);
+    }
+
+    /**
+     * API: Lista fornecedores em formato JSON
+     */
+    public function listarJson($params = [])
+    {
+        $pdo = \getDbConnection();
+        $stmt = $pdo->query("
+            SELECT id, razao_social, cnpj, email, telefone, ramo_atividade 
+            FROM fornecedores 
+            ORDER BY razao_social ASC
+        ");
+        $fornecedores = $stmt->fetchAll();
+
+        // Formata CNPJ para exibição
+        foreach ($fornecedores as &$fornecedor) {
+            $fornecedor['cnpj_formatado'] = formatarString($fornecedor['cnpj'], '##.###.###/####-##');
+            $fornecedor['telefone_formatado'] = $fornecedor['telefone'] ? 
+                formatarString($fornecedor['telefone'], '(##) #####-####') : '';
         }
 
-        // =======================================================
-        //     INÍCIO DA CORREÇÃO: LÓGICA DE SAÍDA SIMPLIFICADA
-        // =======================================================
-        $writer = new Xlsx($spreadsheet);
-        
-        // Inicia o buffer de saída para capturar o arquivo gerado
-        ob_start();
-        $writer->save('php://output');
-        $fileContent = ob_get_clean();
-
-        // Escreve o conteúdo capturado no corpo da resposta
-        $response->getBody()->write($fileContent);
-
-        // Retorna a resposta com os cabeçalhos corretos para forçar o download
-        return $response
-            ->withHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            ->withHeader('Content-Disposition', 'attachment;filename="modelo_importacao_fornecedores.xlsx"');
-        // =======================================================
-        //                      FIM DA CORREÇÃO
-        // =======================================================
+        Router::json($fornecedores);
     }
-    
+
+    /**
+     * API: Lista ramos de atividade únicos
+     */
+    public function listarRamosAtividade($params = [])
+    {
+        $pdo = \getDbConnection();
+        $stmt = $pdo->query("
+            SELECT DISTINCT ramo_atividade 
+            FROM fornecedores 
+            WHERE ramo_atividade IS NOT NULL AND ramo_atividade != ''
+            ORDER BY ramo_atividade ASC
+        ");
+        $ramos = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        Router::json(['ramos' => $ramos]);
+    }
+
+    /**
+     * API: Lista fornecedores por ramo de atividade
+     */
+    public function listarPorRamo($params = [])
+    {
+        $queryParams = Router::getQueryData();
+        $ramo = $queryParams['ramo'] ?? '';
+
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("
+            SELECT id, razao_social, cnpj, email 
+            FROM fornecedores 
+            WHERE ramo_atividade LIKE ?
+            ORDER BY razao_social ASC
+        ");
+        $stmt->execute(["%{$ramo}%"]);
+        $fornecedores = $stmt->fetchAll();
+
+        Router::json(['fornecedores' => $fornecedores]);
+    }
 }

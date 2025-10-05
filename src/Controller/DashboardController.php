@@ -1,9 +1,11 @@
 <?php
 namespace Joabe\Buscaprecos\Controller;
 
+use Joabe\Buscaprecos\Core\Router;
+
 class DashboardController
 {
-    public function exibir($request, $response, $args)
+    public function exibir($params = [])
 {
     $pdo = \getDbConnection();
 
@@ -66,9 +68,8 @@ class DashboardController
     ob_start();
     require __DIR__ . '/../View/layout/main.php';
     $view = ob_get_clean();
-
-    $response->getBody()->write($view);
-    return $response;
+    
+    echo $view;
 }
 
 }

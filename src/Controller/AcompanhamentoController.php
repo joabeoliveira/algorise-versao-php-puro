@@ -1,10 +1,12 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 class AcompanhamentoController
 {
-    public function exibir($request, $response, $args)
+    public function exibir($params = [])
     {
         $pdo = \getDbConnection();
         
@@ -33,7 +35,6 @@ class AcompanhamentoController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 }

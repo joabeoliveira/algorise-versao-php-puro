@@ -1,10 +1,12 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 class ProcessoController
 {
-        public function listar($request, $response, $args)
+        public function listar($params = [])
     {
         $pdo = \getDbConnection();
         $stmt = $pdo->query("SELECT * FROM processos ORDER BY data_criacao DESC");
@@ -22,12 +24,11 @@ class ProcessoController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     // --- CORREÇÃO APLICADA AQUI ---
-        public function exibirFormulario($request, $response, $args)
+        public function exibirFormulario($params = [])
     {
         // Prepara as variáveis para o layout principal
         $tituloPagina = "Novo Processo";
@@ -39,14 +40,13 @@ class ProcessoController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
     // --- FIM DA CORREÇÃO ---
 
-    public function criar($request, $response, $args)
+    public function criar($params = [])
 {
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
     $sql = "INSERT INTO processos (numero_processo, nome_processo, tipo_contratacao, status, agente_responsavel, agente_matricula, uasg, regiao) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -65,11 +65,11 @@ class ProcessoController
         $dados['regiao']
     ]);
 
-    return $response->withHeader('Location', '/processos')->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect('/processos'); return;
 }
 
 
-    public function exibirFormularioEdicao($request, $response, $args)
+    public function exibirFormularioEdicao($params = [])
     {
         $id = $args['id'];
         $pdo = \getDbConnection();
@@ -91,15 +91,14 @@ class ProcessoController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     // NOVO MÉTODO: Salva as alterações no banco de dados
-    public function atualizar($request, $response, $args)
+    public function atualizar($params = [])
 {
     $id = $args['id'];
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
     $sql = "UPDATE processos SET 
                 numero_processo = ?, nome_processo = ?, tipo_contratacao = ?, status = ?, 
@@ -121,12 +120,12 @@ class ProcessoController
         $id
     ]);
 
-    return $response->withHeader('Location', '/processos')->withStatus(302);
+    \Joabe\Buscaprecos\Core\Router::redirect('/processos'); return;
 }
 
 
         // NOVO MÉTODO: Apaga um processo do banco de dados
-    public function excluir($request, $response, $args)
+    public function excluir($params = [])
     {
         $id = $args['id'];
 
@@ -137,6 +136,6 @@ class ProcessoController
         $stmt->execute([$id]);
 
         // Redireciona para o dashboard após excluir
-        return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        \Joabe\Buscaprecos\Core\Router::redirect('/dashboard'); return;
     }
 }

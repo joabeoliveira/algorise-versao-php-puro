@@ -1,11 +1,13 @@
 <?php
+
+use Joabe\Buscaprecos\Core\Router;
 namespace Joabe\Buscaprecos\Controller;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 class PrecoController
 {
-    public function exibirPainel($request, $response, $args)
+    public function exibirPainel($params = [])
     {
         // ... (código do método exibirPainel - sem alterações)
         $processo_id = $args['processo_id'];
@@ -29,17 +31,16 @@ class PrecoController
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
 
     // NOVO MÉTODO: Salva uma nova cotação de preço no banco
-    public function criar($request, $response, $args)
+    public function criar($params = [])
     {
         $processo_id = $args['processo_id'];
         $item_id = $args['item_id'];
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $redirectUrl = "/processos/{$processo_id}/itens/{$item_id}/pesquisar";
 
         if (empty($dados['data_coleta'])) {
@@ -87,9 +88,9 @@ class PrecoController
         return $response->withHeader('Location', $redirectUrl)->withStatus(302);
     }
 
-    public function buscarPainelDePrecos($request, $response, $args)
+    public function buscarPainelDePrecos($params = [])
 {
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $catmat = $dados['catmat'] ?? null;
 
     if (!$catmat) {
@@ -121,7 +122,7 @@ class PrecoController
     }
 }
 
-    public function excluir($request, $response, $args)
+    public function excluir($params = [])
     {
         $processo_id = $args['processo_id'];
         $item_id = $args['item_id'];
@@ -142,7 +143,7 @@ class PrecoController
     /**
      * Cria múltiplas cotações de preço de uma vez (em lote).
      */
-    public function criarLote($request, $response, $args)
+    public function criarLote($params = [])
     {
         $item_id = $args['item_id'];
         $precos = $request->getParsedBody(); // Recebe o array de preços do frontend
@@ -187,7 +188,7 @@ class PrecoController
      * Busca contratações similares na API de dados abertos,
      * seja por região (automático) ou por UASGs específicas.
      */
-    public function pesquisarContratacoesSimilares($request, $response, $args)
+    public function pesquisarContratacoesSimilares($params = [])
     {
         $item_id = $args['item_id'];
         $dadosCorpo = $request->getParsedBody();
@@ -244,13 +245,13 @@ class PrecoController
      * Cria uma solicitação em lote para múltiplos itens e fornecedores,
      * e dispara um e-mail individual e com token único para cada fornecedor.
      */
-    public function enviarSolicitacaoLote($request, $response, $args)
+    public function enviarSolicitacaoLote($params = [])
     {
 
 
 
         $processo_id = $args['processo_id'];
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
         // =======================================================
     //          INÍCIO DO CÓDIGO DE DEPURAÇÃO (TEMPORÁRIO)
@@ -368,7 +369,7 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
         return '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $listaItensDesc)) . '</li></ul>';
     }
 
-    public function exibirAnalise($request, $response, $args)
+    public function exibirAnalise($params = [])
     {
         $processo_id = $args['processo_id'];
         $item_id = $args['item_id'];
@@ -416,13 +417,12 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
-    public function desconsiderarPreco($request, $response, $args)
+    public function desconsiderarPreco($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $justificativa = $dados['justificativa_descarte'];
 
         $sql = "UPDATE precos_coletados SET status_analise = 'desconsiderado', justificativa_descarte = ? WHERE id = ?";
@@ -434,7 +434,7 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
         return $response->withHeader('Location', $redirectUrl)->withStatus(302);
     }
 
-    public function reconsiderarPreco($request, $response, $args)
+    public function reconsiderarPreco($params = [])
     {
         $sql = "UPDATE precos_coletados SET status_analise = 'considerado', justificativa_descarte = NULL WHERE id = ?";
         $pdo = \getDbConnection();

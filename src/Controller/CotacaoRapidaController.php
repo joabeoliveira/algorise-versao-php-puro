@@ -1,5 +1,7 @@
 <?php
 
+use Joabe\Buscaprecos\Core\Router;
+
 namespace Joabe\Buscaprecos\Controller;
 
 // 'USE' STATEMENTS PARA AS BIBLIOTECAS NECESSÁRIAS
@@ -13,7 +15,7 @@ class CotacaoRapidaController
     /**
      * Exibe o formulário principal da Cotação Rápida.
      */
-    public function exibirFormulario($request, $response, $args)
+    public function exibirFormulario($params = [])
     {
         $tituloPagina = "Cotação Rápida";
         $paginaConteudo = __DIR__ . '/../View/cotacao_rapida/formulario.php';
@@ -22,16 +24,15 @@ class CotacaoRapidaController
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
-        $response->getBody()->write($view);
-        return $response;
+        echo $view;
     }
 
     /**
      * Busca preços nas APIs do governo (Incisos I e II) e retorna os resultados em JSON.
      */
-    public function buscarPrecos($request, $response, $args)
+    public function buscarPrecos($params = [])
 {
-    $dados = $request->getParsedBody();
+    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
     $catmats = $dados['catmat'] ?? [];
     $descricoes = $dados['descricao'] ?? [];
     $regioes = $dados['regiao'] ?? [];
@@ -137,9 +138,9 @@ class CotacaoRapidaController
 }
 
 
-   public function salvarAnalise($request, $response, $args)
+   public function salvarAnalise($params = [])
     {
-        $dados = $request->getParsedBody();
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $titulo = $dados['titulo'] ?? 'Cotação Rápida sem título';
         // --- INÍCIO DA CORREÇÃO ---
         $responsavel = $dados['responsavel'] ?? 'Usuário do Sistema'; // Pega o responsável do JS
@@ -205,7 +206,7 @@ class CotacaoRapidaController
     }
 
 
-    public function gerarModeloPlanilha($request, $response, $args)
+    public function gerarModeloPlanilha($params = [])
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
