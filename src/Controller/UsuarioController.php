@@ -249,7 +249,7 @@ class UsuarioController
         $usuarios = $stmt->fetchAll();
 
         $tituloPagina = "Gerenciar Usuários";
-        $paginaConteudo = __DIR__ . '/../View/usuarios/listar.php';
+        $paginaConteudo = __DIR__ . '/../View/usuarios/lista.php';
         
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
@@ -263,7 +263,7 @@ class UsuarioController
     public function exibirFormularioCriacao($params = [])
     {
         $tituloPagina = "Novo Usuário";
-        $paginaConteudo = __DIR__ . '/../View/usuarios/criar.php';
+        $paginaConteudo = __DIR__ . '/../View/usuarios/formulario.php';
         
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
@@ -342,7 +342,7 @@ class UsuarioController
         }
 
         $tituloPagina = "Editar Usuário";
-        $paginaConteudo = __DIR__ . '/../View/usuarios/editar.php';
+        $paginaConteudo = __DIR__ . '/../View/usuarios/formulario_edicao.php';
         
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
