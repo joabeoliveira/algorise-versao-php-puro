@@ -3,8 +3,8 @@
 </div>
 
 <div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
+    <table class="table table-striped table-hover table-bordered table-primary">
+        <thead class="table-primary">
             <tr>
                 <th>Status</th>
                 <th>Processo</th>
@@ -49,7 +49,7 @@
                     <td><?= date('d/m/Y', strtotime($solicitacao['prazo_final'])) ?></td>
                     <td>
                         <?php if (!empty($solicitacao['caminho_anexo'])): ?>
-                            <a href="/download-proposta/<?= htmlspecialchars($solicitacao['caminho_anexo']) ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= htmlspecialchars($solicitacao['nome_original_anexo']) ?>">
+                            <a href="/download.php?file=<?= htmlspecialchars($solicitacao['caminho_anexo']) ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= htmlspecialchars($solicitacao['nome_original_anexo']) ?>">
                                 <i class="bi bi-file-earmark-pdf"></i> Baixar
                             </a>
                         <?php else: ?>

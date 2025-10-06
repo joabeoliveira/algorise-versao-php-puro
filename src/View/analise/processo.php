@@ -59,8 +59,8 @@
             
             <h6 class="mt-4">Curadoria da Cesta de Preços</h6>
             <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-light">
+                <table class="table table-bordered table-hover table-striped table-primary align-middle">
+                    <thead class="table-primary">
                         <tr>
                             <th style="width: 5%;">Status</th>
                             <th>Fonte</th>

@@ -118,7 +118,7 @@ class FornecedorController
         }
 
         $tituloPagina = "Editar Fornecedor";
-        $paginaConteudo = __DIR__ . '/../View/fornecedores/editar.php';
+        $paginaConteudo = __DIR__ . '/../View/fornecedores/formulario_edicao.php';
 
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
@@ -481,7 +481,7 @@ class FornecedorController
         ");
         $ramos = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
-        Router::json(['ramos' => $ramos]);
+        Router::json($ramos);
     }
 
     /**
@@ -493,15 +493,27 @@ class FornecedorController
         $ramo = $queryParams['ramo'] ?? '';
 
         $pdo = \getDbConnection();
-        $stmt = $pdo->prepare("
-            SELECT id, razao_social, cnpj, email 
-            FROM fornecedores 
-            WHERE ramo_atividade LIKE ?
-            ORDER BY razao_social ASC
-        ");
-        $stmt->execute(["%{$ramo}%"]);
+        
+        if ($ramo === 'todos' || empty($ramo)) {
+            // Busca todos os fornecedores
+            $stmt = $pdo->prepare("
+                SELECT id, razao_social, cnpj, email 
+                FROM fornecedores 
+                ORDER BY razao_social ASC
+            ");
+            $stmt->execute();
+        } else {
+            // Busca por ramo específico
+            $stmt = $pdo->prepare("
+                SELECT id, razao_social, cnpj, email 
+                FROM fornecedores 
+                WHERE ramo_atividade LIKE ?
+                ORDER BY razao_social ASC
+            ");
+            $stmt->execute(["%{$ramo}%"]);
+        }
         $fornecedores = $stmt->fetchAll();
 
-        Router::json(['fornecedores' => $fornecedores]);
+        Router::json($fornecedores);
     }
 }

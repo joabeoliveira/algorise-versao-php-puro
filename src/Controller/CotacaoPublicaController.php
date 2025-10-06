@@ -11,9 +11,10 @@ class CotacaoPublicaController
      */
     public function exibirFormulario($params = [])
     {
-        $token = $request->getQueryParams()['token'] ?? null;
+        $token = $_GET['token'] ?? null;
         if (!$token) {
-            return $this->exibirPaginaDeErro($response, "Token de acesso não fornecido. Por favor, utilize o link enviado para o seu e-mail.");
+            $this->exibirPaginaDeErro("Token de acesso não fornecido. Por favor, utilize o link enviado para o seu e-mail.");
+            return;
         }
 
         $pdo = \getDbConnection();
@@ -39,16 +40,19 @@ class CotacaoPublicaController
         $solicitacao = $stmt->fetch();
 
         if (!$solicitacao) {
-            return $this->exibirPaginaDeErro($response, "Solicitação de cotação inválida ou não encontrada.");
+            $this->exibirPaginaDeErro("Solicitação de cotação inválida ou não encontrada.");
+            return;
         }
 
         if ($solicitacao['status'] === 'Respondido') {
-            return $this->exibirPaginaDeErro($response, "Esta cotação já foi respondida. Obrigado!");
+            $this->exibirPaginaDeErro("Esta cotação já foi respondida. Obrigado!");
+            return;
         }
 
         if (new \DateTime() > new \DateTime($solicitacao['prazo_final'])) {
             // Opcional: Atualizar status para Expirado aqui
-            return $this->exibirPaginaDeErro($response, "O prazo para responder a esta cotação expirou em " . date('d/m/Y', strtotime($solicitacao['prazo_final'])) . ".");
+            $this->exibirPaginaDeErro("O prazo para responder a esta cotação expirou em " . date('d/m/Y', strtotime($solicitacao['prazo_final'])) . ".");
+            return;
         }
 
         // Busca os itens associados a esta solicitação
@@ -78,13 +82,14 @@ class CotacaoPublicaController
     public function salvarResposta($params = [])
     {
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
-        $arquivos = $request->getUploadedFiles(); // Pega os arquivos enviados
+        $arquivos = $_FILES; // Pega os arquivos enviados
         $token = $dados['token'] ?? null;
         $precos = $dados['precos'] ?? [];
 
         // Validação básica de entrada
-        if (!$token || empty($precos) || !isset($arquivos['proposta_anexo']) || $arquivos['proposta_anexo']->getError() !== UPLOAD_ERR_OK) {
-            return $this->exibirPaginaDeErro($response, "Dados inválidos. É obrigatório preencher a cotação e anexar a proposta em PDF.");
+        if (!$token || empty($precos) || !isset($arquivos['proposta_anexo']) || $arquivos['proposta_anexo']['error'] !== UPLOAD_ERR_OK) {
+            $this->exibirPaginaDeErro("Dados inválidos. É obrigatório preencher a cotação e anexar a proposta em PDF.");
+            return;
         }
 
         $pdo = \getDbConnection();
@@ -99,7 +104,8 @@ class CotacaoPublicaController
         $solicitacaoInfo = $stmtInfo->fetch();
 
         if (!$solicitacaoInfo) {
-            return $this->exibirPaginaDeErro($response, "Solicitação inválida, já respondida ou expirada.");
+            $this->exibirPaginaDeErro("Solicitação inválida, já respondida ou expirada.");
+            return;
         }
         
         $solicitacaoFornecedorId = $solicitacaoInfo['id'];
@@ -117,19 +123,19 @@ class CotacaoPublicaController
             }
 
             // Validações de segurança do arquivo
-            if ($arquivoAnexo->getSize() > 5 * 1024 * 1024) { // 5 MB
+            if ($arquivoAnexo['size'] > 5 * 1024 * 1024) { // 5 MB
                 throw new \Exception("O arquivo excede o tamanho máximo de 5MB.");
             }
-            if ($arquivoAnexo->getClientMediaType() !== 'application/pdf') {
+            if ($arquivoAnexo['type'] !== 'application/pdf') {
                 throw new \Exception("O arquivo deve ser do tipo PDF.");
             }
 
-            $nomeOriginalAnexo = $arquivoAnexo->getClientFilename();
+            $nomeOriginalAnexo = $arquivoAnexo['name'];
             $extensao = pathinfo($nomeOriginalAnexo, PATHINFO_EXTENSION);
             $nomeUnico = bin2hex(random_bytes(16)) . '.' . $extensao;
             $caminhoAnexo = $diretorioUpload . $nomeUnico;
 
-            $arquivoAnexo->moveTo($caminhoAnexo);
+            move_uploaded_file($arquivoAnexo['tmp_name'], $caminhoAnexo);
 
 
             // 2. Atualiza o status da solicitação para 'Respondido' e salva os dados do anexo
@@ -166,7 +172,8 @@ class CotacaoPublicaController
                 unlink($caminhoAnexo);
             }
             error_log("Erro ao salvar cotação: " . $e->getMessage());
-            return $this->exibirPaginaDeErro($response, "Ocorreu um erro interno ao salvar sua cotação. Detalhe: " . $e->getMessage());
+            $this->exibirPaginaDeErro("Ocorreu um erro interno ao salvar sua cotação. Detalhe: " . $e->getMessage());
+            return;
         }
         
         // Exibe a página de sucesso (código existente)
@@ -180,12 +187,12 @@ class CotacaoPublicaController
     /**
      * Helper para exibir uma página de erro genérica.
      */
-    private function exibirPaginaDeErro($response, $mensagem) {
+    private function exibirPaginaDeErro($mensagem) {
+        http_response_code(400);
         $paginaConteudo = __DIR__ . '/../View/publico/erro.php';
         ob_start();
         require __DIR__ . '/../View/layout/public.php';
         $view = ob_get_clean();
-        $response->getBody()->write($view);
-        return $response->withStatus(400);
+        echo $view;
     }
 }

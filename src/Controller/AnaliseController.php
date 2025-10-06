@@ -11,7 +11,7 @@ class AnaliseController
      */
     public function exibirAnaliseProcesso($params = [])
     {
-        $processo_id = $args['processo_id'];
+        $processo_id = $params['processo_id'] ?? 0;
         $pdo = \getDbConnection();
 
         // 1. Busca os dados do processo
@@ -20,8 +20,9 @@ class AnaliseController
         $processo = $stmtProcesso->fetch();
 
         if (!$processo) {
-            $response->getBody()->write("Processo não encontrado.");
-            return $response->withStatus(404);
+            http_response_code(404);
+            echo "Processo não encontrado.";
+            return;
         }
 
         // 2. ÚNICA CONSULTA OTIMIZADA: Busca todos os itens e seus preços de uma vez
@@ -137,22 +138,22 @@ class AnaliseController
 
 // Em src/Controller/AnaliseController.php
 
-public function salvarAnaliseItem($params = [])
-{
-    // Adiciona este cabeçalho para garantir que a resposta seja sempre JSON
-    $response = $response->withHeader('Content-Type', 'application/json');
-    $pdo = \getDbConnection();
+    public function salvarAnaliseItem($params = [])
+    {
+        header('Content-Type: application/json');
+        $pdo = \getDbConnection();
 
-    try {
-        $item_id = $args['item_id'];
-        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+        try {
+            $item_id = $params['item_id'] ?? 0;
+            $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
-        if (!isset($dados['metodologia_estimativa']) || !isset($dados['justificativa_estimativa'])) {
-            return $response->withJson([
-                'status' => 'error',
-                'message' => 'Dados do formulário incompletos. Faltando metodologia ou justificativa.'
-            ], 400);
-        }
+            if (!isset($dados['metodologia_estimativa']) || !isset($dados['justificativa_estimativa'])) {
+                \Joabe\Buscaprecos\Core\Router::json([
+                    'status' => 'error',
+                    'message' => 'Dados do formulário incompletos. Faltando metodologia ou justificativa.'
+                ], 400);
+                return;
+            }
 
         $metodologia = $dados['metodologia_estimativa'];
         $justificativa = $dados['justificativa_estimativa'];
@@ -200,7 +201,7 @@ public function salvarAnaliseItem($params = [])
             $item_id
         ]);
 
-        return $response->withJson([
+        \Joabe\Buscaprecos\Core\Router::json([
             'status' => 'success',
             'message' => 'Análise do item salva com sucesso!',
             'item_id' => $item_id,
@@ -209,12 +210,12 @@ public function salvarAnaliseItem($params = [])
 
     } catch (\Throwable $e) {
         error_log("ERRO FATAL EM salvarAnaliseItem: " . $e->getMessage());
-        return $response->withJson([
+        \Joabe\Buscaprecos\Core\Router::json([
             'status' => 'error',
             'message' => 'ERRO INTERNO NO SERVIDOR: ' . $e->getMessage()
         ], 500);
     }
-}
+    }
 
 /**
      * Salva as justificativas gerais do processo, como a justificativa
@@ -223,7 +224,7 @@ public function salvarAnaliseItem($params = [])
     public function salvarJustificativasProcesso($params = [])
     {
         // 1. Pega o ID do processo vindo da URL
-        $processo_id = $args['id'];
+        $processo_id = $params['id'] ?? 0;
         
         // 2. Pega os dados que foram enviados pelo formulário
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
@@ -245,7 +246,8 @@ public function salvarAnaliseItem($params = [])
 
         // 6. Redireciona o usuário de volta para a página de análise
         $redirectUrl = "/processos/{$processo_id}/analise";
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
 }

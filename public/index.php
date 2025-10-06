@@ -24,6 +24,7 @@ use Joabe\Buscaprecos\Controller\RelatorioController;
 use Joabe\Buscaprecos\Controller\CotacaoRapidaController;
 use Joabe\Buscaprecos\Controller\UsuarioController;
 use Joabe\Buscaprecos\Controller\CotacaoPublicaController;
+use Joabe\Buscaprecos\Controller\ConfiguracaoController;
 
 // Cria o router
 $router = new Router();
@@ -31,8 +32,8 @@ $router = new Router();
 // Middleware de Autenticação Global
 $router->addMiddleware(function() {
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha'];
-    $isPublic = in_array($path, $publicRoutes) || str_starts_with($path, '/cotacao/responder');
+    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/teste-download'];
+    $isPublic = in_array($path, $publicRoutes) || str_starts_with($path, '/cotacao/responder') || str_starts_with($path, '/download-proposta/') || str_starts_with($path, '/teste-param/');
 
     if (!isset($_SESSION['usuario_id']) && !$isPublic) {
         Router::redirect('/login');
@@ -53,6 +54,19 @@ $adminMiddleware = function() {
 // =====================================
 // ROTAS PÚBLICAS
 // =====================================
+
+// Teste simples
+$router->get('/teste-download', function($params) {
+    echo "ROTA TESTE FUNCIONANDO!";
+});
+
+// Teste com parâmetros
+$router->get('/teste-param/{arquivo}', function($params) {
+    echo "ROTA COM PARÂMETROS FUNCIONANDO! Arquivo: " . ($params['arquivo'] ?? 'NENHUM');
+});
+
+// Download de propostas 
+$router->get('/download-proposta/{nome_arquivo}', [UsuarioController::class, 'downloadProposta']);
 
 // Login
 $router->get('/login', function() {
@@ -142,22 +156,6 @@ $router->get('/relatorios', [RelatorioController::class, 'listar']);
 $router->get('/processos/{id}/relatorio', [RelatorioController::class, 'gerarRelatorio']);
 $router->get('/relatorios/{nota_id}/visualizar', [RelatorioController::class, 'visualizar']);
 
-// Download de propostas
-$router->get('/download-proposta/{nome_arquivo}', function($params) {
-    $nomeArquivo = $params['nome_arquivo'];
-    $caminhoCompleto = __DIR__ . '/../storage/propostas/' . $nomeArquivo;
-    
-    if (!file_exists($caminhoCompleto) || !preg_match('/^[a-f0-9]+\.pdf$/', $nomeArquivo)) {
-        http_response_code(404);
-        echo 'Arquivo não encontrado ou inválido.';
-        return;
-    }
-    
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . $nomeArquivo . '"');
-    readfile($caminhoCompleto);
-});
-
 // =====================================
 // APIs (JSON)
 // =====================================
@@ -183,6 +181,23 @@ $router->group('/usuarios', function($router) {
     $router->get('/{id}/editar', [UsuarioController::class, 'exibirFormularioEdicao']);
     $router->post('/{id}/editar', [UsuarioController::class, 'atualizar']);
     $router->post('/{id}/excluir', [UsuarioController::class, 'excluir']);
+}, $adminMiddleware);
+
+// Configurações do sistema (apenas para admins)
+$router->group('/configuracoes', function($router) {
+    $router->get('', [ConfiguracaoController::class, 'index']);
+    $router->get('/geral', [ConfiguracaoController::class, 'index']); // Alias para página principal
+    $router->post('/atualizar', [ConfiguracaoController::class, 'atualizar']);
+    
+    // Configurações de email
+    $router->get('/email', [ConfiguracaoController::class, 'emailConfig']);
+    $router->post('/email/atualizar', [ConfiguracaoController::class, 'atualizarEmail']);
+    $router->post('/email/testar', [ConfiguracaoController::class, 'testarEmail']);
+    
+    // Configurações de interface
+    $router->get('/interface', [ConfiguracaoController::class, 'interfaceConfig']);
+    $router->post('/interface/atualizar', [ConfiguracaoController::class, 'atualizarInterface']);
+    $router->post('/interface/upload', [ConfiguracaoController::class, 'uploadLogo']);
 }, $adminMiddleware);
 
 // Relatório de gestão (em desenvolvimento)

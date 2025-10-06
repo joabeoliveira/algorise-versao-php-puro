@@ -3,8 +3,8 @@
 </div>
 
 <div class="table-responsive mt-4">
-    <table class="table table-striped table-hover align-middle">
-        <thead class="table-dark">
+    <table class="table table-striped table-hover table-bordered table-primary align-middle">
+        <thead class="table-primary">
             <tr>
                 <th>Número da Nota</th>
                 <th>Origem / Título</th>
@@ -30,15 +30,15 @@
                             <div>
                                 <span class="badge bg-info">Cotação Rápida</span>
                             </div>
-                            <div class="small text-muted"><?= htmlspecialchars($nota['titulo_cotacao']) ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($nota['titulo_cotacao'] ?? '') ?></div>
                         <?php else: ?>
                             <div>
                                 <span class="badge bg-secondary">Processo</span>
                             </div>
-                            <div class="small text-muted"><?= htmlspecialchars($nota['numero_processo']) ?> - <?= htmlspecialchars($nota['nome_processo']) ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($nota['numero_processo'] ?? '') ?> - <?= htmlspecialchars($nota['nome_processo'] ?? '') ?></div>
                         <?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($nota['gerada_por']) ?></td>
+                    <td><?= htmlspecialchars($nota['gerada_por'] ?? 'Sistema') ?></td>
                     <td><?= date('d/m/Y H:i:s', strtotime($nota['gerada_em'])) ?></td>
                     <td>
                         <a href="/relatorios/<?= $nota['id'] ?>/visualizar" target="_blank" class="btn btn-sm btn-outline-secondary" title="Visualizar Relatório">

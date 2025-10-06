@@ -1,13 +1,35 @@
 <?php
 // Pega o caminho da URL atual para sabermos qual menu deve ficar ativo
 $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
+
+// Carregar configurações de interface
+use Joabe\Buscaprecos\Controller\ConfiguracaoController;
+$configsInterface = ConfiguracaoController::getConfiguracoesPorCategoria('interface');
+
+// Definir valores padrão se não estiverem configurados
+$nomeSystem = $configsInterface['interface_nome_sistema'] ?? 'Algorise';
+$corPrimaria = $configsInterface['interface_cor_primaria'] ?? '#0d6efd';
+$corSecundaria = $configsInterface['interface_cor_secundaria'] ?? '#6c757d';
+$corSucesso = $configsInterface['interface_cor_sucesso'] ?? '#198754';
+$corPerigo = $configsInterface['interface_cor_perigo'] ?? '#dc3545';
+$corAviso = $configsInterface['interface_cor_aviso'] ?? '#ffc107';
+$corInfo = $configsInterface['interface_cor_info'] ?? '#0dcaf0';
+$corSidebar = $configsInterface['interface_sidebar_cor'] ?? '#212529';
+$larguraSidebar = $configsInterface['interface_sidebar_largura'] ?? '280';
+$fonteFamilia = $configsInterface['interface_fonte_familia'] ?? 'system-ui';
+$tema = $configsInterface['interface_tema'] ?? 'claro';
+$logoPath = $configsInterface['interface_logo_path'] ?? '';
+$bordasArredondadas = ($configsInterface['interface_bordas_arredondadas'] ?? '1') === '1';
+$sombras = ($configsInterface['interface_sombras'] ?? '1') === '1';
+$animacoes = ($configsInterface['interface_animacoes'] ?? '1') === '1';
+$duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $tituloPagina ?? 'Algorise' ?></title>
+    <title><?= $tituloPagina ?? $nomeSystem ?></title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -16,17 +38,333 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
     <link rel="stylesheet" href="/css/dashboard.css">
 
     <style>
+        /* ==========  CONFIGURAÇÕES DINÂMICAS DA INTERFACE ========== */
+        :root {
+            --bs-primary: <?= $corPrimaria ?>;
+            --bs-secondary: <?= $corSecundaria ?>;
+            --bs-success: <?= $corSucesso ?>;
+            --bs-danger: <?= $corPerigo ?>;
+            --bs-warning: <?= $corAviso ?>;
+            --bs-info: <?= $corInfo ?>;
+            --sidebar-bg: <?= $corSidebar ?>;
+            --sidebar-width: <?= $larguraSidebar ?>px;
+            --font-family: <?= $fonteFamilia ?>;
+            --border-radius: <?= $bordasArredondadas ? '0.375rem' : '0' ?>;
+            --box-shadow: <?= $sombras ? '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)' : 'none' ?>;
+            --transition-duration: <?= $duracaoTransicoes ?>s;
+        }
+
         body {
             overflow-x: hidden;
+            font-family: var(--font-family);
+            <?php if ($tema === 'escuro'): ?>background-color: #121212; color: #e0e0e0;<?php endif; ?>
         }
+        
         #sidebar {
             min-height: 100vh;
+            width: var(--sidebar-width) !important;
+            background-color: var(--sidebar-bg) !important;
         }
+        
         .main-content {
             width: 100%;
             padding: 2rem;
             overflow-y: auto;
             height: 100vh;
+        }
+
+        /* Aplicar cores personalizadas */
+        .btn-primary {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+        }
+        .btn-primary:hover {
+            background-color: color-mix(in srgb, var(--bs-primary) 85%, black);
+            border-color: color-mix(in srgb, var(--bs-primary) 85%, black);
+        }
+
+        .bg-primary {
+            background-color: var(--bs-primary) !important;
+        }
+        .text-primary {
+            color: var(--bs-primary) !important;
+        }
+        .border-primary {
+            border-color: var(--bs-primary) !important;
+        }
+
+        .btn-success {
+            background-color: var(--bs-success);
+            border-color: var(--bs-success);
+        }
+        .btn-danger {
+            background-color: var(--bs-danger);
+            border-color: var(--bs-danger);
+        }
+        .btn-warning {
+            background-color: var(--bs-warning);
+            border-color: var(--bs-warning);
+        }
+
+        .alert-success {
+            background-color: color-mix(in srgb, var(--bs-success) 15%, white);
+            border-color: var(--bs-success);
+            color: color-mix(in srgb, var(--bs-success) 80%, black);
+        }
+        .alert-danger {
+            background-color: color-mix(in srgb, var(--bs-danger) 15%, white);
+            border-color: var(--bs-danger);
+            color: color-mix(in srgb, var(--bs-danger) 80%, black);
+        }
+
+        /* ==========  ESTILOS PERSONALIZADOS PARA TABELAS ========== */
+        .table-primary th {
+            background-color: var(--bs-primary) !important;
+            color: white !important;
+            border-color: color-mix(in srgb, var(--bs-primary) 80%, black) !important;
+        }
+        .table-primary td {
+            border-color: color-mix(in srgb, var(--bs-primary) 30%, white) !important;
+        }
+        .table-primary tbody tr:hover {
+            background-color: color-mix(in srgb, var(--bs-primary) 10%, white) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: color-mix(in srgb, var(--bs-primary) 5%, white) !important;
+        }
+
+        .table-bordered {
+            border-color: color-mix(in srgb, var(--bs-primary) 30%, white) !important;
+        }
+        .table-bordered th,
+        .table-bordered td {
+            border-color: color-mix(in srgb, var(--bs-primary) 30%, white) !important;
+        }
+
+        /* Estilos para paginação */
+        .page-link {
+            color: var(--bs-primary) !important;
+            border-color: color-mix(in srgb, var(--bs-primary) 30%, white) !important;
+        }
+        .page-link:hover {
+            background-color: color-mix(in srgb, var(--bs-primary) 10%, white) !important;
+            border-color: var(--bs-primary) !important;
+        }
+        .page-item.active .page-link {
+            background-color: var(--bs-primary) !important;
+            border-color: var(--bs-primary) !important;
+        }
+
+        /* Estilos para badges */
+        .badge.bg-primary {
+            background-color: var(--bs-primary) !important;
+        }
+        .badge.bg-success {
+            background-color: var(--bs-success) !important;
+        }
+        .badge.bg-danger {
+            background-color: var(--bs-danger) !important;
+        }
+        .badge.bg-warning {
+            background-color: var(--bs-warning) !important;
+        }
+
+        /* Aplicar bordas arredondadas */
+        <?php if ($bordasArredondadas): ?>
+        .card, .btn, .form-control, .form-select, .alert, .badge {
+            border-radius: var(--border-radius) !important;
+        }
+        <?php endif; ?>
+
+        /* Aplicar sombras */
+        <?php if ($sombras): ?>
+        .card, .dropdown-menu {
+            box-shadow: var(--box-shadow) !important;
+        }
+        .card-header {
+            box-shadow: inset 0 -1px 0 rgba(0,0,0,.125) !important;
+        }
+        <?php endif; ?>
+
+        /* Aplicar animações */
+        <?php if ($animacoes): ?>
+        .btn, .card, .nav-link, .dropdown-item {
+            transition: all var(--transition-duration) ease-in-out;
+        }
+        .btn:hover, .nav-link:hover {
+            transform: translateY(-1px);
+        }
+        <?php endif; ?>
+
+        /* Tema escuro */
+        <?php if ($tema === 'escuro'): ?>
+        .card {
+            background-color: #1e1e1e;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #2d2d2d !important;
+            border-color: #333;
+        }
+        .form-control, .form-select {
+            background-color: #2d2d2d;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #2d2d2d;
+            border-color: var(--bs-primary);
+            color: #e0e0e0;
+        }
+        .table {
+            color: #e0e0e0;
+        }
+        .table-striped > tbody > tr:nth-of-type(odd) > td {
+            background-color: #252525;
+        }
+        <?php endif; ?>
+        
+        /* ===== CHATBOT STYLES ===== */
+        #open-chat {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #open-chat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        #chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 1001;
+            overflow: hidden;
+        }
+
+        #chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #close-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        #chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        #send-button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.bot {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #e9ecef;
+            border-radius: 18px;
+            max-width: 80%;
+            margin-bottom: 15px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+            animation: bounce 1.4s ease-in-out infinite both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            } 40% {
+                transform: scale(1);
+            }
         }
     </style>
 </head>
@@ -34,8 +372,12 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
     <div class="d-flex">
         <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px;" id="sidebar">
             <a href="/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-                <i class="bi bi-graph-up-arrow me-2 fs-4"></i>
-                <span class="fs-4">Algorise</span>
+                <?php if (!empty($logoPath)): ?>
+                    <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo" class="me-2" style="width: 32px; height: 32px; object-fit: contain;">
+                <?php else: ?>
+                    <i class="bi bi-graph-up-arrow me-2 fs-4"></i>
+                <?php endif; ?>
+                <span class="fs-4"><?= htmlspecialchars($nomeSystem) ?></span>
             </a>
             <hr>
             <ul class="nav nav-pills flex-column mb-auto">
@@ -87,7 +429,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="nav-link text-white">
+                        <a href="/configuracoes" class="nav-link <?= str_starts_with($currentPath, '/configuracoes') ? 'active' : 'text-white' ?>">
                             <i class="bi bi-gear me-2"></i> Configurações
                         </a>
                     </li>
@@ -139,11 +481,6 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
 <div id="chatbot-container" style="display: none;">
     <div id="chat-header">
         Chatbot Algorise
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
-        Chatbot Algorise AI
-=======
-        Chatbot Algorise
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
         <button id="close-button"><i class="fas fa-times"></i></button>
     </div>
     <div id="chat-messages"></div>

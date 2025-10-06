@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# 🔍 Algorise AI
+# 🔍 Algorise AI - Versão PHP Puro
 
 > Sistema de automação de processos de cotação, análise de preços e gestão de fornecedores para compras públicas e privadas.
 
@@ -251,7 +250,14 @@ docker-compose -f docker-compose.production-debug.yml up -d
 2. Commit e push para GitHub
 3. Acesse o Portainer em https://portainer.algorise.com.br
 4. Atualize os stacks conforme necessário
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
 
+## ✅ Migração PHP Puro Concluída
 
-teste de commit
+Este projeto foi migrado do Slim Framework para **PHP puro**, mantendo todas as funcionalidades originais:
+
+- ✅ Sistema de roteamento customizado
+- ✅ Middleware de autenticação
+- ✅ Geração de PDFs com notas técnicas
+- ✅ Sistema de email SMTP
+- ✅ Chatbot integrado
+- ✅ Interface responsiva

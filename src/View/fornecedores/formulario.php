@@ -1,6 +1,14 @@
 <div class="container mt-4">
     <h1>Adicionar Novo Fornecedor</h1>
 
+    <?php if (isset($_SESSION['flash_error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($_SESSION['flash_error']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php unset($_SESSION['flash_error']); ?>
+    <?php endif; ?>
+
     <form action="/fornecedores" method="POST" class="mt-4">
         <div class="mb-3">
             <label for="razao_social" class="form-label">Razão Social</label>

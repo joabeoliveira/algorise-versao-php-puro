@@ -10,6 +10,7 @@ class Router
 {
     private array $routes = [];
     private array $middlewares = [];
+    private string $currentPrefix = '';
     
     public function __construct()
     {
@@ -49,9 +50,16 @@ class Router
     public function group(string $prefix, callable $callback, callable $middleware = null): void
     {
         $originalRoutes = count($this->routes);
+        $originalPrefix = $this->currentPrefix;
+        
+        // Define o prefixo temporariamente
+        $this->currentPrefix = rtrim($originalPrefix . $prefix, '/');
         
         // Executa o callback para adicionar as rotas do grupo
         $callback($this);
+        
+        // Restaura o prefixo original
+        $this->currentPrefix = $originalPrefix;
         
         // Se há middleware, aplica às rotas recém-adicionadas
         if ($middleware) {
@@ -104,9 +112,17 @@ class Router
      */
     private function addRoute(string $method, string $path, $handler): void
     {
+        // Aplica o prefixo do grupo se existir
+        $fullPath = $this->currentPrefix . $path;
+        
+        // Garantir que sempre comece com /
+        if ($fullPath === '' || $fullPath[0] !== '/') {
+            $fullPath = '/' . $fullPath;
+        }
+        
         $this->routes[] = [
             'method' => $method,
-            'path' => $path,
+            'path' => $fullPath,
             'handler' => $handler
         ];
     }
@@ -188,6 +204,15 @@ class Router
      */
     public static function getPostData(): array
     {
+        // Se for JSON no body da requisição
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (str_contains($contentType, 'application/json')) {
+            $jsonInput = file_get_contents('php://input');
+            $decodedData = json_decode($jsonInput, true);
+            return $decodedData ?? [];
+        }
+        
+        // Senão, retorna $_POST normal
         return $_POST ?? [];
     }
     

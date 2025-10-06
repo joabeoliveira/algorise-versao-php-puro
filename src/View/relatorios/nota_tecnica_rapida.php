@@ -72,9 +72,72 @@
         .item-analysis-block {
             page-break-inside: avoid;
         }
+        /* Estilos para cabeçalho com logo */
+        .header-container {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #2E4053;
+        }
+        .header-logo {
+            display: table-cell;
+            width: 80px;
+            vertical-align: middle;
+        }
+        .header-logo img {
+            max-width: 70px;
+            max-height: 70px;
+            object-fit: contain;
+        }
+        .header-info {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 20px;
+        }
+        .header-info h2 {
+            font-size: 16pt;
+            margin: 0;
+            color: #2E4053;
+            font-family: 'Arial', sans-serif;
+        }
+        .header-info p {
+            margin: 2px 0;
+            font-size: 9pt;
+            color: #666;
+        }
     </style>
 </head>
 <body>
+    <!-- Cabeçalho com logo e informações da empresa -->
+    <?php if (!empty($dadosRelatorio['logo_path']) || !empty($dadosRelatorio['empresa']['nome'])): ?>
+    <div class="header-container">
+        <?php if (!empty($dadosRelatorio['logo_path'])): ?>
+        <div class="header-logo">
+            <img src="<?= __DIR__ . '/../../public' . htmlspecialchars($dadosRelatorio['logo_path']) ?>" alt="Logo">
+        </div>
+        <?php endif; ?>
+        <div class="header-info">
+            <h2><?= htmlspecialchars($dadosRelatorio['empresa']['nome'] ?? 'Empresa') ?></h2>
+            <?php if (!empty($dadosRelatorio['empresa']['cnpj'])): ?>
+            <p><strong>CNPJ:</strong> <?= htmlspecialchars($dadosRelatorio['empresa']['cnpj']) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($dadosRelatorio['empresa']['endereco'])): ?>
+            <p><?= htmlspecialchars($dadosRelatorio['empresa']['endereco']) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($dadosRelatorio['empresa']['cidade']) && !empty($dadosRelatorio['empresa']['estado'])): ?>
+            <p><?= htmlspecialchars($dadosRelatorio['empresa']['cidade']) ?> - <?= htmlspecialchars($dadosRelatorio['empresa']['estado']) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($dadosRelatorio['empresa']['telefone']) || !empty($dadosRelatorio['empresa']['email'])): ?>
+            <p>
+                <?php if (!empty($dadosRelatorio['empresa']['telefone'])): ?>Tel: <?= htmlspecialchars($dadosRelatorio['empresa']['telefone']) ?><?php endif; ?>
+                <?php if (!empty($dadosRelatorio['empresa']['email'])): ?> | Email: <?= htmlspecialchars($dadosRelatorio['empresa']['email']) ?><?php endif; ?>
+            </p>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <h3>Relatório Simplificado de Pesquisa de Preços</h3>
     <h4>NOTA Nº <?= sprintf('%04d', $dadosNota['numero_nota']) ?>/<?= $dadosNota['ano_nota'] ?> (Cotação Rápida)</h4>
 

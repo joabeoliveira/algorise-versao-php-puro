@@ -27,7 +27,9 @@ class RelatorioController
                 
                 // Determina qual coluna de data usar para ordenação
                 $dateColumn = 'id'; // fallback para id se não houver coluna de data
-                if (in_array('created_at', $columns)) {
+                if (in_array('gerada_em', $columns)) {
+                    $dateColumn = 'nt.gerada_em';
+                } elseif (in_array('created_at', $columns)) {
                     $dateColumn = 'nt.created_at';
                 } elseif (in_array('data_criacao', $columns)) {
                     $dateColumn = 'nt.data_criacao';
@@ -38,20 +40,31 @@ class RelatorioController
                 }
                 
                 $stmt = $pdo->query("
-                    SELECT nt.*, p.nome_processo, p.numero_processo
+                    SELECT 
+                        nt.*,
+                        COALESCE(p.nome_processo, '') as nome_processo, 
+                        COALESCE(p.numero_processo, '') as numero_processo,
+                        COALESCE(cr.titulo, '') as titulo_cotacao,
+                        COALESCE(nt.gerada_por, 'Sistema') as gerada_por
                     FROM notas_tecnicas nt
-                    JOIN processos p ON nt.processo_id = p.id
+                    LEFT JOIN processos p ON nt.processo_id = p.id
+                    LEFT JOIN cotacoes_rapidas cr ON nt.cotacao_rapida_id = cr.id
                     ORDER BY $dateColumn DESC
                 ");
                 $relatorios = $stmt->fetchAll();
             }
         } catch (\Exception $e) {
+            // Debug temporário - registra erro no log
+            error_log("Erro no RelatorioController::listar: " . $e->getMessage());
             // Se houver erro, retorna array vazio e não quebra a página
             $relatorios = [];
         }
 
+        // A view espera variável $notas, não $relatorios
+        $notas = $relatorios;
+        
         $tituloPagina = "Relatórios Gerados";
-        $paginaConteudo = __DIR__ . '/../View/relatorios/listar.php';
+        $paginaConteudo = __DIR__ . '/../View/relatorios/lista.php';
 
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
@@ -110,15 +123,19 @@ class RelatorioController
             return;
         }
 
+        // Carregar configurações da empresa e interface para aplicar nos relatórios
+        $configsEmpresa = ConfiguracaoController::getConfiguracoesPorCategoria('empresa');
+        $configsInterface = ConfiguracaoController::getConfiguracoesPorCategoria('interface');
+
         // Busca itens do processo
         $stmtItens = $pdo->prepare("
             SELECT i.*, 
                    COUNT(p.id) as total_precos,
-                   MIN(p.valor_unitario) as menor_preco,
-                   MAX(p.valor_unitario) as maior_preco,
-                   AVG(p.valor_unitario) as preco_medio
+                   MIN(p.valor) as menor_preco,
+                   MAX(p.valor) as maior_preco,
+                   AVG(p.valor) as preco_medio
             FROM itens i
-            LEFT JOIN precos p ON i.id = p.item_id AND p.desconsiderado = 0
+            LEFT JOIN precos_coletados p ON i.id = p.item_id AND p.status_analise = 'considerado'
             WHERE i.processo_id = ?
             GROUP BY i.id
             ORDER BY i.numero_item
@@ -129,11 +146,10 @@ class RelatorioController
         // Busca preços para cada item
         foreach ($itens as &$item) {
             $stmtPrecos = $pdo->prepare("
-                SELECT p.*, f.razao_social as fornecedor_nome, f.cnpj as fornecedor_cnpj
-                FROM precos p
-                JOIN fornecedores f ON p.fornecedor_id = f.id
-                WHERE p.item_id = ? AND p.desconsiderado = 0
-                ORDER BY p.valor_unitario ASC
+                SELECT p.*, p.fornecedor_nome, p.fornecedor_cnpj
+                FROM precos_coletados p
+                WHERE p.item_id = ? AND p.status_analise = 'considerado'
+                ORDER BY p.valor ASC
             ");
             $stmtPrecos->execute([$item['id']]);
             $item['precos'] = $stmtPrecos->fetchAll(\PDO::FETCH_ASSOC);
@@ -144,7 +160,20 @@ class RelatorioController
             'title' => "Nota Técnica Nº {$numero_nota}/{$ano_nota}",
             'subtitle' => "Processo: {$processo['numero_processo']} - {$processo['nome_processo']}",
             'header' => true,
-            'sections' => []
+            'sections' => [],
+            // Dados da empresa para cabeçalho do relatório
+            'empresa' => [
+                'nome' => $configsEmpresa['empresa_nome'] ?? 'Empresa',
+                'cnpj' => $configsEmpresa['empresa_cnpj'] ?? '',
+                'endereco' => $configsEmpresa['empresa_endereco'] ?? '',
+                'cidade' => $configsEmpresa['empresa_cidade'] ?? '',
+                'estado' => $configsEmpresa['empresa_estado'] ?? '',
+                'cep' => $configsEmpresa['empresa_cep'] ?? '',
+                'telefone' => $configsEmpresa['empresa_telefone'] ?? '',
+                'email' => $configsEmpresa['empresa_email'] ?? ''
+            ],
+            // Logo da empresa
+            'logo_path' => $configsInterface['interface_logo_path'] ?? null
         ];
 
         // Seção 1: Dados do Processo
@@ -165,7 +194,7 @@ class RelatorioController
             'content' => "
                 <p>A pesquisa de preços foi realizada conforme determina a Instrução Normativa SEGES/MP nº 65/2021, 
                 utilizando sistema informatizado que consolida cotações de fornecedores do mercado.</p>
-                <p>Foram pesquisados {count($itens)} itens junto a fornecedores especializados no ramo de atividade.</p>
+                <p>Foram pesquisados " . count($itens) . " itens junto a fornecedores especializados no ramo de atividade.</p>
             "
         ];
 
@@ -177,9 +206,10 @@ class RelatorioController
             ];
 
             foreach ($itens as $item) {
+                $descricao = $item['descricao'] ?? '';
                 $tabelaItens['data'][] = [
                     $item['numero_item'],
-                    substr($item['descricao_detalhada'], 0, 80) . (strlen($item['descricao_detalhada']) > 80 ? '...' : ''),
+                    substr($descricao, 0, 80) . (strlen($descricao) > 80 ? '...' : ''),
                     $item['unidade_medida'],
                     number_format($item['quantidade'], 0, ',', '.'),
                     $item['total_precos'],
@@ -196,10 +226,12 @@ class RelatorioController
 
         // Seção 4: Detalhamento por Item
         foreach ($itens as $item) {
+            $descricao = $item['descricao'] ?? 'Descrição não informada';
+            $catmat = $item['catmat_catser'] ?? 'N/A';
             $conteudoItem = "
                 <h4>Item {$item['numero_item']}</h4>
-                <p><strong>Descrição:</strong> {$item['descricao_detalhada']}</p>
-                <p><strong>Código CATMAT:</strong> {$item['codigo_catmat']}</p>
+                <p><strong>Descrição:</strong> {$descricao}</p>
+                <p><strong>Código CATMAT:</strong> {$catmat}</p>
                 <p><strong>Unidade:</strong> {$item['unidade_medida']}</p>
                 <p><strong>Quantidade:</strong> " . number_format($item['quantidade'], 0, ',', '.') . "</p>
             ";
@@ -211,11 +243,11 @@ class RelatorioController
                 ];
 
                 foreach ($item['precos'] as $preco) {
-                    $valorTotal = $preco['valor_unitario'] * $item['quantidade'];
+                    $valorTotal = $preco['valor'] * $item['quantidade'];
                     $tabelaPrecos['data'][] = [
                         $preco['fornecedor_nome'],
                         formatarString($preco['fornecedor_cnpj'], '##.###.###/####-##'),
-                        formatarMoeda($preco['valor_unitario']),
+                        formatarMoeda($preco['valor']),
                         formatarMoeda($valorTotal)
                     ];
                 }
@@ -225,8 +257,8 @@ class RelatorioController
 
                 // Análise de preços
                 if (count($item['precos']) > 1) {
-                    $menorPreco = min(array_column($item['precos'], 'valor_unitario'));
-                    $maiorPreco = max(array_column($item['precos'], 'valor_unitario'));
+                    $menorPreco = min(array_column($item['precos'], 'valor'));
+                    $maiorPreco = max(array_column($item['precos'], 'valor'));
                     $variacao = (($maiorPreco - $menorPreco) / $menorPreco) * 100;
 
                     $conteudoItem .= "
@@ -278,38 +310,48 @@ class RelatorioController
         // Salva no banco de dados se for uma nova nota
         if (!$isRegeneration) {
             try {
+                $geradoPor = $_SESSION['usuario_nome'] ?? 'Sistema';
                 $stmtInsert = $pdo->prepare("
-                    INSERT INTO notas_tecnicas (processo_id, numero_nota, ano_nota, conteudo_html, created_at)
-                    VALUES (?, ?, ?, ?, NOW())
+                    INSERT INTO notas_tecnicas (processo_id, numero_nota, ano_nota, tipo, gerada_por, gerada_em)
+                    VALUES (?, ?, ?, 'PROCESSO', ?, NOW())
                 ");
-                $stmtInsert->execute([$processo_id, $numero_nota, $ano_nota, $pdf->render()]);
+                $stmtInsert->execute([$processo_id, $numero_nota, $ano_nota, $geradoPor]);
                 $nota_existente_id = $pdo->lastInsertId();
             } catch (\Exception $e) {
                 logarEvento('error', 'Erro ao salvar nota técnica: ' . $e->getMessage());
             }
         }
 
-        // Adiciona link para visualização posterior
+        // Adiciona link para voltar à lista
         $pdf->addCss("
             .view-link {
                 position: fixed;
                 top: 10px;
                 right: 10px;
-                background: #007bff;
-                color: white;
-                padding: 8px 15px;
+                background: #28a745;
+                color: white !important;
+                padding: 10px 20px;
                 text-decoration: none;
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 5px;
+                font-size: 14px;
+                font-weight: bold;
                 z-index: 1000;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+            .view-link:hover {
+                background: #218838;
+                text-decoration: none;
+                color: white !important;
+                transform: translateY(-1px);
             }
             @media print { .view-link { display: none; } }
         ");
 
-        $linkVisualizacao = "/relatorios/{$nota_existente_id}/visualizar";
+        $linkListaRelatorios = "/relatorios";
         $htmlFinal = str_replace(
             '<body>',
-            "<body><a href='{$linkVisualizacao}' class='view-link no-print'>← Voltar para Lista</a>",
+            "<body><a href='{$linkListaRelatorios}' class='view-link no-print'>← Voltar para Lista</a>",
             $pdf->render()
         );
 
@@ -319,7 +361,7 @@ class RelatorioController
     }
 
     /**
-     * Visualiza uma nota técnica existente
+     * Visualiza uma nota técnica existente (regenera em tempo real)
      */
     public function visualizar($params = [])
     {
@@ -337,25 +379,14 @@ class RelatorioController
 
         if (!$nota) {
             $_SESSION['flash_error'] = 'Relatório não encontrado.';
-            Router::redirect('/relatorios');
-            return;
+            header("Location: /relatorios");
+            exit;
         }
 
-        // Adiciona link para regenerar o relatório
-        $linkRegeneracao = "/processos/{$nota['processo_id']}/relatorio?nota_id={$nota_id}";
-        $htmlFinal = str_replace(
-            '<body>',
-            "<body>
-                <div class='no-print' style='position: fixed; top: 10px; right: 10px; z-index: 1000;'>
-                    <a href='/relatorios' class='btn btn-secondary btn-sm'>← Lista</a>
-                    <a href='{$linkRegeneracao}' class='btn btn-primary btn-sm'>Regenerar</a>
-                </div>",
-            $nota['conteudo_html']
-        );
-
-        // Output direto
-        header('Content-Type: text/html; charset=UTF-8');
-        echo $htmlFinal;
+        // Redireciona para regenerar o relatório usando os dados da nota existente
+        $redirectUrl = "/processos/{$nota['processo_id']}/relatorio?nota_id={$nota_id}";
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
     /**

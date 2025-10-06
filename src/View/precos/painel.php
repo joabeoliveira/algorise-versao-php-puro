@@ -97,8 +97,8 @@
             <div class="col-md-7">
                 <h4>Preços Coletados (<?= count($precos) ?>)</h4>
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-dark">
+                    <table class="table table-sm table-bordered table-striped table-primary">
+                        <thead class="table-primary">
                             <tr>
                                 <th>Fonte</th>
                                 <th>Valor</th>
@@ -148,8 +148,8 @@
           <div class="modal-body">
             <p>Selecione uma das cotações abaixo para preencher o formulário de adição automaticamente.</p>
             <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead class="table-secondary">
+                <table class="table table-sm table-hover table-striped table-primary">
+                    <thead class="table-primary">
                         <tr>
                             <th style="width: 5%;"></th>
                             <th>Preço Unit.</th>
@@ -200,8 +200,8 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <div id="resultadosOrgaosContainer" class="table-responsive" style="display: none;">
-                        <table class="table table-sm table-hover">
-                            <thead class="table-secondary">
+                        <table class="table table-sm table-hover table-striped table-primary">
+                            <thead class="table-primary">
                                 <tr>
                                     <th style="width: 5%;"></th>
                                     <th>Preço Unit.</th>

@@ -71,15 +71,16 @@ class ProcessoController
 
     public function exibirFormularioEdicao($params = [])
     {
-        $id = $args['id'];
+        $id = $params['id'] ?? 0;
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
         $stmt->execute([$id]);
         $processo = $stmt->fetch();
 
         if (!$processo) {
-            $response->getBody()->write("Processo não encontrado.");
-            return $response->withStatus(404);
+            $_SESSION['flash_error'] = 'Processo não encontrado.';
+            Router::redirect('/processos');
+            return;
         }
         
         // Prepara as variáveis para o layout principal
@@ -97,7 +98,7 @@ class ProcessoController
     // NOVO MÉTODO: Salva as alterações no banco de dados
     public function atualizar($params = [])
 {
-    $id = $args['id'];
+    $id = $params['id'] ?? 0;
     $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
     $sql = "UPDATE processos SET 
@@ -120,14 +121,15 @@ class ProcessoController
         $id
     ]);
 
-    \Joabe\Buscaprecos\Core\Router::redirect('/processos'); return;
+    $_SESSION['flash_success'] = 'Processo atualizado com sucesso.';
+    Router::redirect('/processos');
 }
 
 
         // NOVO MÉTODO: Apaga um processo do banco de dados
     public function excluir($params = [])
     {
-        $id = $args['id'];
+        $id = $params['id'] ?? 0;
 
         $sql = "DELETE FROM processos WHERE id = ?";
 
@@ -135,7 +137,8 @@ class ProcessoController
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id]);
 
-        // Redireciona para o dashboard após excluir
-        \Joabe\Buscaprecos\Core\Router::redirect('/dashboard'); return;
+        // Redireciona para a lista de processos após excluir
+        $_SESSION['flash_success'] = 'Processo excluído com sucesso.';
+        Router::redirect('/processos');
     }
 }

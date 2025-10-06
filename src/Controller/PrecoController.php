@@ -1,7 +1,8 @@
 <?php
 
-use Joabe\Buscaprecos\Core\Router;
 namespace Joabe\Buscaprecos\Controller;
+
+use Joabe\Buscaprecos\Core\Router;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -9,9 +10,8 @@ class PrecoController
 {
     public function exibirPainel($params = [])
     {
-        // ... (código do método exibirPainel - sem alterações)
-        $processo_id = $args['processo_id'];
-        $item_id = $args['item_id'];
+        $processo_id = $params['processo_id'] ?? 0;
+        $item_id = $params['item_id'] ?? 0;
         $pdo = \getDbConnection();
         $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
         $stmtProcesso->execute([$processo_id]);
@@ -20,8 +20,9 @@ class PrecoController
         $stmtItem->execute([$item_id, $processo_id]);
         $item = $stmtItem->fetch();
         if (!$processo || !$item) {
-            $response->getBody()->write("Erro 404: Processo ou Item não encontrado.");
-            return $response->withStatus(404);
+            http_response_code(404);
+            echo "Erro 404: Processo ou Item não encontrado.";
+            return;
         }
         $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY criado_em DESC");
         $stmtPrecos->execute([$item_id]);
@@ -38,14 +39,15 @@ class PrecoController
     // NOVO MÉTODO: Salva uma nova cotação de preço no banco
     public function criar($params = [])
     {
-        $processo_id = $args['processo_id'];
-        $item_id = $args['item_id'];
+        $processo_id = $params['processo_id'] ?? 0;
+        $item_id = $params['item_id'] ?? 0;
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $redirectUrl = "/processos/{$processo_id}/itens/{$item_id}/pesquisar";
 
         if (empty($dados['data_coleta'])) {
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro: A data da coleta é obrigatória.'];
-            return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            header("Location: {$redirectUrl}");
+            exit;
         }
 
         $fonte = $dados['fonte'];
@@ -71,7 +73,8 @@ class PrecoController
 
         if ($erroPrazo) {
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $erroPrazo];
-            return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            header("Location: {$redirectUrl}");
+            exit;
         }
 
         $sql = "INSERT INTO precos_coletados (item_id, fonte, valor, unidade_medida, data_coleta, fornecedor_nome, fornecedor_cnpj, link_evidencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -85,48 +88,56 @@ class PrecoController
         ]);
 
         $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Cotação manual adicionada com sucesso!'];
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
     public function buscarPainelDePrecos($params = [])
-{
-    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
-    $catmat = $dados['catmat'] ?? null;
+    {
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+        $catmat = $dados['catmat'] ?? null;
 
-    if (!$catmat) {
-        $response->getBody()->write(json_encode(['erro' => 'CATMAT não fornecido']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        if (!$catmat) {
+            \Joabe\Buscaprecos\Core\Router::json(['erro' => 'CATMAT não fornecido'], 400);
+            return;
+        }
+
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Monta a URL completa e correta da API do governo, incluindo todos os parâmetros.
+        $url = "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial?pagina=1&tamanhoPagina=20&codigoItemCatalogo={$catmat}&dataResultado=true";
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
+                'timeout' => 30
+            ]
+        ]);
+
+        try {
+            $response = file_get_contents($url, false, $context);
+            
+            if ($response === false) {
+                \Joabe\Buscaprecos\Core\Router::json(['erro' => 'Falha ao consultar a API do Painel de Preços.'], 500);
+                return;
+            }
+            
+            header('Content-Type: application/json');
+            echo $response;
+
+        } catch (\Exception $e) {
+            // Log do erro para depuração
+            error_log($e->getMessage()); 
+            
+            \Joabe\Buscaprecos\Core\Router::json(['erro' => 'Falha ao consultar a API do Painel de Preços.'], 500);
+        }
     }
-
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Monta a URL completa e correta da API do governo, incluindo todos os parâmetros.
-    $url = "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial?pagina=1&tamanhoPagina=20&codigoItemCatalogo={$catmat}&dataResultado=true";
-
-    $client = new \GuzzleHttp\Client([
-        'verify' => false // Adicionado para ignorar problemas de certificado SSL que podem ocorrer em ambientes locais
-    ]);
-
-    try {
-        $apiResponse = $client->request('GET', $url);
-        $body = $apiResponse->getBody()->getContents();
-        
-        $response->getBody()->write($body);
-        return $response->withHeader('Content-Type', 'application/json');
-
-    } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-        // Log do erro para depuração
-        error_log($e->getMessage()); 
-        
-        $response->getBody()->write(json_encode(['erro' => 'Falha ao consultar a API do Painel de Preços.']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-    }
-}
 
     public function excluir($params = [])
     {
-        $processo_id = $args['processo_id'];
-        $item_id = $args['item_id'];
-        $preco_id = $args['preco_id'];
+        $processo_id = $params['processo_id'] ?? 0;
+        $item_id = $params['item_id'] ?? 0;
+        $preco_id = $params['preco_id'] ?? 0;
 
         $pdo = \getDbConnection();
         
@@ -137,7 +148,8 @@ class PrecoController
 
         // Redireciona o usuário de volta para a página de pesquisa
         $redirectUrl = "/processos/{$processo_id}/itens/{$item_id}/pesquisar";
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
     /**
@@ -145,11 +157,12 @@ class PrecoController
      */
     public function criarLote($params = [])
     {
-        $item_id = $args['item_id'];
-        $precos = $request->getParsedBody(); // Recebe o array de preços do frontend
+        $item_id = $params['item_id'] ?? 0;
+        $precos = \Joabe\Buscaprecos\Core\Router::getPostData(); // Recebe o array de preços do frontend
 
         if (empty($precos) || !is_array($precos)) {
-            return $response->withJson(['status' => 'error', 'message' => 'Nenhum preço fornecido.'], 400);
+            \Joabe\Buscaprecos\Core\Router::json(['status' => 'error', 'message' => 'Nenhum preço fornecido.'], 400);
+            return;
         }
 
         $pdo = \getDbConnection();
@@ -178,10 +191,11 @@ class PrecoController
         } catch (\Exception $e) {
             $pdo->rollBack();
             // Em um app real, logaríamos o erro $e->getMessage()
-            return $response->withJson(['status' => 'error', 'message' => 'Falha ao salvar os preços.'], 500);
+            \Joabe\Buscaprecos\Core\Router::json(['status' => 'error', 'message' => 'Falha ao salvar os preços.'], 500);
+            return;
         }
 
-        return $response->withJson(['status' => 'success', 'message' => 'Cotações salvas com sucesso.']);
+        \Joabe\Buscaprecos\Core\Router::json(['status' => 'success', 'message' => 'Cotações salvas com sucesso.']);
     }
 
     /**
@@ -190,8 +204,8 @@ class PrecoController
      */
     public function pesquisarContratacoesSimilares($params = [])
     {
-        $item_id = $args['item_id'];
-        $dadosCorpo = $request->getParsedBody();
+        $item_id = $params['item_id'] ?? 0;
+        $dadosCorpo = \Joabe\Buscaprecos\Core\Router::getPostData();
         $uasgsSugeridas = $dadosCorpo['uasgs'] ?? [];
 
         $pdo = \getDbConnection();
@@ -202,13 +216,13 @@ class PrecoController
         $itemInfo = $stmtItem->fetch();
 
         if (!$itemInfo || empty($itemInfo['catmat_catser'])) {
-            return $response->withJson(['erro' => 'Item, CATMAT ou Região não encontrados.'], 404);
+            \Joabe\Buscaprecos\Core\Router::json(['erro' => 'Item, CATMAT ou Região não encontrados.'], 404);
+            return;
         }
 
         $catmat = $itemInfo['catmat_catser'];
         $regiao = $itemInfo['regiao'];
         
-        $client = new \GuzzleHttp\Client(['verify' => false]);
         $resultadosFinais = ['resultado' => []];
 
         try {
@@ -217,27 +231,50 @@ class PrecoController
                 foreach ($uasgsSugeridas as $uasg) {
                     if (empty($uasg)) continue;
                     $url = "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial?codigoItemCatalogo={$catmat}&codigoUasg={$uasg}&dataResultado=true&tamanhoPagina=10";
-                    $apiResponse = $client->request('GET', $url);
-                    $dados = json_decode($apiResponse->getBody()->getContents(), true);
-                    if (!empty($dados['resultado'])) {
-                        $resultadosFinais['resultado'] = array_merge($resultadosFinais['resultado'], $dados['resultado']);
+                    
+                    $context = stream_context_create([
+                        'http' => [
+                            'method' => 'GET',
+                            'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
+                            'timeout' => 30
+                        ]
+                    ]);
+                    
+                    $response = file_get_contents($url, false, $context);
+                    if ($response !== false) {
+                        $dados = json_decode($response, true);
+                        if (!empty($dados['resultado'])) {
+                            $resultadosFinais['resultado'] = array_merge($resultadosFinais['resultado'], $dados['resultado']);
+                        }
                     }
                 }
             } else {
                 // Modo 2: Busca automática pela região do processo
                 $url = "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial?codigoItemCatalogo={$catmat}&estado={$regiao}&dataResultado=true&tamanhoPagina=20";
-                $apiResponse = $client->request('GET', $url);
-                $dados = json_decode($apiResponse->getBody()->getContents(), true);
-                if (!empty($dados['resultado'])) {
-                    $resultadosFinais['resultado'] = $dados['resultado'];
+                
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
+                        'timeout' => 30
+                    ]
+                ]);
+                
+                $response = file_get_contents($url, false, $context);
+                if ($response !== false) {
+                    $dados = json_decode($response, true);
+                    if (!empty($dados['resultado'])) {
+                        $resultadosFinais['resultado'] = $dados['resultado'];
+                    }
                 }
             }
-        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+        } catch (\Exception $e) {
             error_log("Erro na API de Contratos Similares: " . $e->getMessage());
-            return $response->withJson(['erro' => 'Falha ao consultar a API externa.'], 502);
+            \Joabe\Buscaprecos\Core\Router::json(['erro' => 'Falha ao consultar a API externa.'], 502);
+            return;
         }
 
-        return $response->withJson($resultadosFinais);
+        \Joabe\Buscaprecos\Core\Router::json($resultadosFinais);
     }
 
      
@@ -247,37 +284,37 @@ class PrecoController
      */
     public function enviarSolicitacaoLote($params = [])
     {
-
-
-
-        $processo_id = $args['processo_id'];
+        // Log de entrada no método
+        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - MÉTODO CHAMADO: enviarSolicitacaoLote\n", FILE_APPEND);
+        
+        // Debug - desligar exibição de erros HTML
+        ini_set('display_errors', 0);
+        
+        $processo_id = $params['processo_id'] ?? 0;
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
-        // =======================================================
-    //          INÍCIO DO CÓDIGO DE DEPURAÇÃO (TEMPORÁRIO)
-    // =======================================================
-    $log_message = "Timestamp: " . date("Y-m-d H:i:s") . "\n";
-    $log_message .= "Dados Recebidos: " . print_r($dados, true) . "\n---\n";
-    file_put_contents(__DIR__ . '/../../debug.log', $log_message, FILE_APPEND);
-    // =======================================================
-    //                  FIM DO CÓDIGO DE DEPURAÇÃO
-    // =======================================================
+        // Debug temporário
+        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - Dados recebidos: " . json_encode($dados) . "\n", FILE_APPEND);
+        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'não definido') . "\n", FILE_APPEND);
 
-    $processo_id = $args['processo_id'];
-    $itemIds = $dados['item_ids'] ?? [];
-    $fornecedorIds = $dados['fornecedor_ids'] ?? [];
+            $itemIds = $dados['item_ids'] ?? [];
+            $fornecedorIds = $dados['fornecedor_ids'] ?? [];
+            $prazoDias = (int)($dados['prazo_dias'] ?? 5);
+            $condicoesContratuais = $dados['condicoes_contratuais'] ?? '';
+            $justificativaFornecedores = $dados['justificativa_fornecedores'] ?? '';
 
-    
-
-        $itemIds = $dados['item_ids'] ?? [];
-        $fornecedorIds = $dados['fornecedor_ids'] ?? [];
-        $prazoDias = (int)($dados['prazo_dias'] ?? 5);
-        $condicoesContratuais = $dados['condicoes_contratuais'] ?? '';
-        $justificativaFornecedores = $dados['justificativa_fornecedores'] ?? '';
-
-        if (empty($itemIds) || empty($fornecedorIds) || empty($justificativaFornecedores)) {
-            return $response->withJson(['status' => 'error', 'message' => 'É necessário selecionar itens, fornecedores e preencher a justificativa.'], 400);
-        }
+            if (empty($itemIds) || empty($fornecedorIds) || empty($justificativaFornecedores)) {
+                \Joabe\Buscaprecos\Core\Router::json([
+                    'status' => 'error', 
+                    'message' => 'É necessário selecionar itens, fornecedores e preencher a justificativa.',
+                    'debug' => [
+                        'itemIds' => $itemIds,
+                        'fornecedorIds' => $fornecedorIds,
+                        'justificativa' => $justificativaFornecedores
+                    ]
+                ], 400);
+                return;
+            }
 
         $pdo = \getDbConnection();
 
@@ -314,45 +351,68 @@ class PrecoController
             }
 
             foreach ($listaFornecedores as $fornecedor) {
+                $tokenUnico = $tokensPorFornecedorId[$fornecedor['id']];
+                $linkResposta = "http://{$_SERVER['HTTP_HOST']}/cotacao/responder?token={$tokenUnico}";
+                
                 $mail = new PHPMailer(true);
                 try {
+                    // Log das configurações de email
+                    $host = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
+                    $username = $_ENV['MAIL_USERNAME'] ?? '';
+                    $password = $_ENV['MAIL_PASSWORD'] ?? '';
+                    $port = $_ENV['MAIL_PORT'] ?? 587;
+                    
+                    file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - CONFIG EMAIL - Host: {$host}, User: {$username}, Port: {$port}, Password: " . (empty($password) ? 'VAZIO' : 'DEFINIDA') . "\n", FILE_APPEND);
+                    
                     $mail->isSMTP();
-                    $mail->Host       = $_ENV['MAIL_HOST'];
+                    $mail->Host       = $host;
                     $mail->SMTPAuth   = true;
-                    $mail->Username   = $_ENV['MAIL_USERNAME'];
-                    $mail->Password   = $_ENV['MAIL_PASSWORD'];
+                    $mail->Username   = $username;
+                    $mail->Password   = $password;
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port       = $_ENV['MAIL_PORT'];
+                    $mail->Port       = $port;
                     $mail->CharSet    = 'UTF-8';
-                    $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
+                    $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@sistema.com', $_ENV['MAIL_FROM_NAME'] ?? 'Sistema');
                     $mail->addAddress($fornecedor['email'], $fornecedor['razao_social']);
                     $mail->isHTML(true);
                     $mail->Subject = 'Solicitação de Cotação de Preços';
-                    $tokenUnico = $tokensPorFornecedorId[$fornecedor['id']];
-                    $linkResposta = "http://{$_SERVER['HTTP_HOST']}/cotacao/responder?token={$tokenUnico}";
                     $mail->Body = "<h1>Solicitação de Cotação</h1><p>Prezado(a) Fornecedor(a) <strong>" . htmlspecialchars($fornecedor['razao_social']) . "</strong>,</p><p>Estamos realizando uma pesquisa de preços para os seguintes itens:</p>{$itensHtml}{$blocoCondicoes}<p>Para nos enviar sua proposta, por favor, acesse o seu link exclusivo abaixo. O prazo para resposta é até o dia <strong>" . date('d/m/Y', strtotime($prazoFinal)) . "</strong>.</p><p style=\"text-align:center; margin: 20px 0;\"><a href='{$linkResposta}' style='padding: 12px 20px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; font-size: 16px;'>Clique Aqui para Cotar</a></p><p>Se não for possível clicar no botão, copie e cole o link a seguir no seu navegador: {$linkResposta}</p><p>Atenciosamente,<br>Equipe de Cotações</p>";
                     $mail->AltBody = "Para cotar os itens, por favor, copie e cole o seguinte link no seu navegador: {$linkResposta}";
                     $mail->send();
                 } catch (Exception $e) {
-                    $errosEnvio[] = "Não foi possível enviar para {$fornecedor['email']}. Erro: {$mail->ErrorInfo}";
+                    $erroDetalhado = "Não foi possível enviar para {$fornecedor['email']}. Erro PHPMailer: {$e->getMessage()} | ErrorInfo: {$mail->ErrorInfo}";
+                    $errosEnvio[] = $erroDetalhado;
+                    file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - ERRO EMAIL: " . $erroDetalhado . "\n", FILE_APPEND);
                 }
             }
 
             if (!empty($errosEnvio)) {
-                return $response->withJson(['status' => 'warning', 'message' => 'Solicitações salvas, mas alguns e-mails não puderam ser enviados.', 'details' => $errosEnvio]);
+                \Joabe\Buscaprecos\Core\Router::json([
+                    'status' => 'warning', 
+                    'message' => 'Solicitações salvas, mas alguns e-mails não puderam ser enviados.', 
+                    'details' => $errosEnvio
+                ]);
+                return;
             }
             $pdo->commit();
         } catch (\Exception $e) {
             $pdo->rollBack();
             error_log("Erro ao enviar solicitação em lote: " . $e->getMessage());
-            return $response->withJson(['status' => 'error', 'message' => 'Falha ao processar a solicitação. Detalhe: ' . $e->getMessage()], 500);
+            \Joabe\Buscaprecos\Core\Router::json([
+                'status' => 'error', 
+                'message' => 'Falha ao processar a solicitação. Detalhe: ' . $e->getMessage()
+            ], 500);
+            return;
         }
 
-        return $response->withJson(['status' => 'success', 'message' => 'Solicitações enviadas com sucesso!']);
+        \Joabe\Buscaprecos\Core\Router::json([
+            'status' => 'success', 
+            'message' => 'Solicitações enviadas com sucesso!'
+        ]);
     }
 
-// Adicione estes dois métodos auxiliares dentro da classe PrecoController para manter o código organizado
-private function getDadosFornecedores(\PDO $pdo, array $fornecedorIds): array
+    // Métodos auxiliares
+    private function getDadosFornecedores(\PDO $pdo, array $fornecedorIds): array
     {
         $placeholders = implode(',', array_fill(0, count($fornecedorIds), '?'));
         $stmt = $pdo->prepare("SELECT id, razao_social, email FROM fornecedores WHERE id IN ($placeholders)");
@@ -371,8 +431,8 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
 
     public function exibirAnalise($params = [])
     {
-        $processo_id = $args['processo_id'];
-        $item_id = $args['item_id'];
+        $processo_id = $params['processo_id'] ?? 0;
+        $item_id = $params['item_id'] ?? 0;
         $pdo = \getDbConnection();
 
         $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
@@ -428,10 +488,11 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
         $sql = "UPDATE precos_coletados SET status_analise = 'desconsiderado', justificativa_descarte = ? WHERE id = ?";
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$justificativa, $args['preco_id']]);
+        $stmt->execute([$justificativa, $params['preco_id']]);
 
-        $redirectUrl = "/processos/{$args['processo_id']}/analise";
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        $redirectUrl = "/processos/{$params['processo_id']}/analise";
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
     public function reconsiderarPreco($params = [])
@@ -439,10 +500,11 @@ private function getItensHtml(\PDO $pdo, array $itemIds): string
         $sql = "UPDATE precos_coletados SET status_analise = 'considerado', justificativa_descarte = NULL WHERE id = ?";
         $pdo = \getDbConnection();
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$args['preco_id']]);
+        $stmt->execute([$params['preco_id']]);
 
-        $redirectUrl = "/processos/{$args['processo_id']}/analise";
-        return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+        $redirectUrl = "/processos/{$params['processo_id']}/analise";
+        header("Location: {$redirectUrl}");
+        exit;
     }
 
 }

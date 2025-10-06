@@ -6,8 +6,8 @@
 </div>
 
 <div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
+    <table class="table table-striped table-hover table-bordered table-primary">
+        <thead class="table-primary">
             <tr>
                 <th>Nº do Processo</th>
                 <th>Nome</th>

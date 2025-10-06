@@ -23,8 +23,8 @@ class ItemController
         $processo = $stmtProcesso->fetch();
 
         if (!$processo) {
-            echo "Processo não encontrado.";
-            http_response_code(404);
+            $_SESSION['flash_error'] = 'Processo não encontrado.';
+            \Joabe\Buscaprecos\Core\Router::redirect('/processos');
             return;
         }
 
@@ -108,8 +108,8 @@ class ItemController
     $item = $stmtItem->fetch();
 
     if (!$processo || !$item) {
-        echo "Processo ou item não encontrado.";
-        http_response_code(404);
+        $_SESSION['flash_error'] = 'Processo ou item não encontrado.';
+        \Joabe\Buscaprecos\Core\Router::redirect('/processos');
         return;
     }
 
@@ -144,8 +144,9 @@ class ItemController
 
     if ($count > 0) {
         // Se encontrou duplicado, redireciona de volta com uma mensagem de erro
-        $redirectUrl = "/processos/{$processo_id}/itens?erro=duplicado";
-        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+        $_SESSION['flash_error'] = 'Já existe um item com este número ou CATMAT neste processo.';
+        \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
+        return;
     }
     // --- FIM DA VALIDAÇÃO ---
 
@@ -170,7 +171,8 @@ class ItemController
         $processo_id
     ]);
     // Redireciona de volta para a lista de itens do processo
-    \Joabe\Buscaprecos\Core\Router::redirect('/processos/{$processo_id}/itens'); return;
+    $_SESSION['flash_success'] = 'Item atualizado com sucesso.';
+    \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
 
 }
 

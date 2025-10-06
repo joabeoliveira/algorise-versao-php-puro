@@ -23,9 +23,9 @@ Thumbs.db
 
 # Ignorar arquivo de override do Docker Compose
 docker-compose.override.yml
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb
+
 # ===============================================
-# BUSCAPREÇOS - ARQUIVOS IGNORADOS PELO GIT
+# ALGORISE - ARQUIVOS IGNORADOS PELO GIT
 # ===============================================
 
 # Arquivos de ambiente (CRÍTICO - NUNCA COMMITAR)
@@ -132,4 +132,3 @@ docker-compose.local.yml
 
 # Ignorar arquivo de override do Docker Compose
 docker-compose.override.yml
->>>>>>> ef0bad352813ec9d1d8023bae5f0e81307cc7bfb

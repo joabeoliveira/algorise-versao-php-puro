@@ -38,8 +38,8 @@ $totalItens = $totalItens ?? count($itens); // Garante que $totalItens sempre te
 
 <h4 class="mt-4">Itens Cadastrados</h4>
 <div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead class="table-dark">
+    <table class="table table-striped table-hover table-bordered table-primary align-middle">
+        <thead class="table-primary">
             <tr>
                 <th>Nº</th>
                 <th style="width: 50%;">Descrição</th>
@@ -160,7 +160,7 @@ $totalItens = $totalItens ?? count($itens); // Garante que $totalItens sempre te
                     <h6>1. Selecione os Itens para Cotar</h6>
                     <div class="table-responsive" style="max-height: 200px;">
                         <table class="table table-sm table-hover">
-                            <thead class="table-light"><tr><th style="width: 5%;"><input class="form-check-input" type="checkbox" id="checkTodosItens"></th><th><label for="checkTodosItens" style="cursor: pointer;" class="mb-0">Selecionar Todos os Itens</label></th></tr></thead>
+                            <thead class="table-primary"><tr><th style="width: 5%;"><input class="form-check-input" type="checkbox" id="checkTodosItens"></th><th><label for="checkTodosItens" style="cursor: pointer;" class="mb-0 text-white">Selecionar Todos os Itens</label></th></tr></thead>
                             <tbody>
                                 <?php foreach($itens as $item): ?>
                                 <tr><td><input type="checkbox" class="form-check-input item-lote-check" value="<?= $item['id'] ?>"></td><td><?= htmlspecialchars($item['numero_item']) ?> - <?= htmlspecialchars($item['descricao']) ?></td></tr>

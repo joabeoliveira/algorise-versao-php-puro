@@ -431,4 +431,33 @@ class UsuarioController
         $_SESSION['flash_success'] = 'Usuário excluído com sucesso!';
         Router::redirect('/usuarios');
     }
+
+    /**
+     * Download de proposta de fornecedor
+     */
+    public function downloadProposta($params = [])
+    {
+        // Debug
+        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - MÉTODO DOWNLOAD CHAMADO - Params: " . json_encode($params) . "\n", FILE_APPEND);
+        
+        $nomeArquivo = $params['nome_arquivo'] ?? '';
+        
+        if (empty($nomeArquivo)) {
+            http_response_code(404);
+            echo 'Nome do arquivo não fornecido.';
+            return;
+        }
+        
+        $caminhoCompleto = __DIR__ . '/../../storage/propostas/' . $nomeArquivo;
+        
+        if (!file_exists($caminhoCompleto) || !preg_match('/^[a-f0-9]+\.pdf$/', $nomeArquivo)) {
+            http_response_code(404);
+            echo 'Arquivo não encontrado ou inválido.';
+            return;
+        }
+        
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $nomeArquivo . '"');
+        readfile($caminhoCompleto);
+    }
 }
