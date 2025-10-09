@@ -9,7 +9,7 @@ session_start();
 
 // Carrega configurações e autoloader
 require __DIR__ . '/../vendor/autoload.php';
-$settings = require __DIR__ . '/../src/settings.php';
+$settings = require __DIR__ . '/../src/settings-php-puro.php';
 
 // Importa as classes necessárias
 use Joabe\Buscaprecos\Core\Router;
