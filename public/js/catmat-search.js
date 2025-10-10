@@ -428,12 +428,15 @@ class CatmatSearch {
     // Carregar lista de processos
     async loadProcessos() {
         try {
-            // Implementar API para carregar processos
-            const processos = [
-                { id: 1, nome: 'Processo 001/2025 - Material de Escritório' },
-                { id: 2, nome: 'Processo 002/2025 - Equipamentos Médicos' },
-                { id: 3, nome: 'Processo 003/2025 - Material de Limpeza' }
-            ];
+            console.log('Carregando processos reais da API...');
+            
+            const response = await fetch('/api/catmat/processos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar processos');
+            }
+            
+            const processos = await response.json();
+            console.log('Processos carregados:', processos);
             
             const select = document.getElementById('processoDestino');
             select.innerHTML = '<option value="">Selecione um processo</option>';
@@ -445,8 +448,14 @@ class CatmatSearch {
                 select.appendChild(option);
             });
             
+            console.log(`${processos.length} processo(s) adicionado(s) ao select`);
+            
         } catch (error) {
             console.error('Erro ao carregar processos:', error);
+            
+            // Fallback em caso de erro
+            const select = document.getElementById('processoDestino');
+            select.innerHTML = '<option value="">Erro ao carregar processos</option>';
         }
     }
 
