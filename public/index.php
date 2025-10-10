@@ -4,12 +4,12 @@
  * Substitui o Slim Framework por um sistema de roteamento simples
  */
 
-// Inicia a sessão
-session_start();
-
-// Carrega configurações e autoloader
+// Carrega configurações e autoloader primeiro
 require __DIR__ . '/../vendor/autoload.php';
 $settings = require __DIR__ . '/../src/settings-php-puro.php';
+
+// Inicia a sessão após carregar configurações
+session_start();
 
 // Importa as classes necessárias
 use Joabe\Buscaprecos\Core\Router;
@@ -25,6 +25,7 @@ use Joabe\Buscaprecos\Controller\CotacaoRapidaController;
 use Joabe\Buscaprecos\Controller\UsuarioController;
 use Joabe\Buscaprecos\Controller\CotacaoPublicaController;
 use Joabe\Buscaprecos\Controller\ConfiguracaoController;
+use Joabe\Buscaprecos\Controller\CatmatController;
 
 // Cria o router
 $router = new Router();
@@ -33,7 +34,11 @@ $router = new Router();
 $router->addMiddleware(function() {
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/teste-download'];
-    $isPublic = in_array($path, $publicRoutes) || str_starts_with($path, '/cotacao/responder') || str_starts_with($path, '/download-proposta/') || str_starts_with($path, '/teste-param/');
+    $isPublic = in_array($path, $publicRoutes) || 
+                str_starts_with($path, '/cotacao/responder') || 
+                str_starts_with($path, '/download-proposta/') || 
+                str_starts_with($path, '/teste-param/') ||
+                str_starts_with($path, '/api/catmat/');
 
     if (!isset($_SESSION['usuario_id']) && !$isPublic) {
         Router::redirect('/login');
@@ -150,6 +155,10 @@ $router->get('/fornecedores/modelo-planilha', [FornecedorController::class, 'ger
 $router->get('/cotacao-rapida', [CotacaoRapidaController::class, 'exibirFormulario']);
 $router->get('/cotacao-rapida/modelo-planilha', [CotacaoRapidaController::class, 'gerarModeloPlanilha']);
 
+// Busca CATMAT
+$router->get('/catmat/busca', [CatmatController::class, 'busca']);
+$router->get('/catmat', [CatmatController::class, 'busca']); // Alias para facilitar acesso
+
 // Relatórios e Acompanhamento
 $router->get('/acompanhamento', [AcompanhamentoController::class, 'exibir']);
 $router->get('/relatorios', [RelatorioController::class, 'listar']);
@@ -169,6 +178,12 @@ $router->get('/api/fornecedores/ramos-atividade', [FornecedorController::class, 
 $router->get('/api/fornecedores/por-ramo', [FornecedorController::class, 'listarPorRamo']);
 $router->post('/api/cotacao-rapida/buscar', [CotacaoRapidaController::class, 'buscarPrecos']);
 $router->post('/api/cotacao-rapida/salvar-relatorio', [CotacaoRapidaController::class, 'salvarAnalise']);
+
+// APIs para busca CATMAT
+$router->post('/api/catmat/pesquisar', [CatmatController::class, 'pesquisar']);
+$router->get('/api/catmat/sugestoes', [CatmatController::class, 'sugestoes']);
+$router->get('/api/catmat/processos', [CatmatController::class, 'listarProcessos']);
+$router->post('/api/catmat/adicionar-item', [CatmatController::class, 'adicionarItem']);
 
 // =====================================
 // ROTAS ADMINISTRATIVAS (APENAS ADMIN)

@@ -36,6 +36,8 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/catmat-search/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    
+    <?php if (isset($cssExtra)) echo $cssExtra; ?>
 
     <style>
         /* ==========  CONFIGURAÇÕES DINÂMICAS DA INTERFACE ========== */
@@ -391,8 +393,13 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
                         <i class="bi bi-folder2-open me-2"></i> Processos
                     </a>
                 </li>
-
                 
+                <li>
+                    <a href="/catmat" class="nav-link <?= str_starts_with($currentPath, '/catmat') ? 'active' : 'text-white' ?>">
+                        <i class="bi bi-search me-2"></i> Consulta CATMAT
+                    </a>
+                </li>
+
                 <li>
                     <a href="/fornecedores" class="nav-link <?= str_starts_with($currentPath, '/fornecedores') ? 'active' : 'text-white' ?>">
                         <i class="bi bi-truck me-2"></i> Fornecedores
@@ -610,6 +617,8 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
         return typingDiv;
     }
 </script>
+
+<?php if (isset($jsExtra)) echo $jsExtra; ?>
 
 </body>
 </html>

@@ -49,7 +49,8 @@ echo [OK] Pastas criadas/verificadas
 
 echo.
 echo [5/5] URLs de acesso:
-echo [INFO] Via XAMPP: http://localhost/algorise-versao-php-puro
+echo [INFO] Via XAMPP (com redirecionamento): http://localhost/algorise-versao-php-puro
+echo [INFO] Via XAMPP (direto): http://localhost/algorise-versao-php-puro/public
 echo [INFO] Via PHP built-in: php -S localhost:8080 -t public
 echo [INFO] Login: admin@algorise.com / admin123
 

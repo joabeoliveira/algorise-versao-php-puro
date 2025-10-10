@@ -1,0 +1,37 @@
+# Redirecionamento para a pasta public/
+# Algorise - Sistema de Pesquisa de Preços
+
+# Habilita o módulo de reescrita
+RewriteEngine On
+
+# Redireciona todas as requisições para a pasta public/ 
+# exceto se o arquivo/pasta já existir na raiz
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L,QSA]
+
+# Se acessar a raiz diretamente, redireciona para public/
+RewriteRule ^$ public/ [L]
+
+# Proteção de arquivos sensíveis
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "composer.*">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "*.md">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Configurações de segurança
+ServerTokens Prod
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"

@@ -30,8 +30,11 @@ composer install
 
 **🎯 Opção 1: XAMPP (Recomendado para desenvolvimento)**
 ```powershell
-# Acesse diretamente via XAMPP Apache
+# Agora você pode acessar pela raiz (redirecionamento automático)
 http://localhost/algorise-versao-php-puro
+
+# Ou diretamente pela pasta public/
+http://localhost/algorise-versao-php-puro/public
 ```
 
 **🛠️ Opção 2: Servidor PHP Built-in**
@@ -40,10 +43,30 @@ php -S localhost:8080 -t public
 # Depois acesse: http://localhost:8080
 ```
 
+**🔧 Opção 3: Virtual Host (Configuração avançada)**
+```apache
+# Em C:\xampp\apache\conf\extra\httpd-vhosts.conf adicionar:
+<VirtualHost *:80>
+    DocumentRoot "C:/xampp/htdocs/algorise-versao-php-puro/public"
+    ServerName algorise.local
+    <Directory "C:/xampp/htdocs/algorise-versao-php-puro/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+# Depois acesse: http://algorise.local
+```
+
 #### **Passo 4: Login no Sistema**
-- **URL:** http://localhost/algorise-versao-php-puro (XAMPP) ou http://localhost:8080 (PHP built-in)
+- **URL:** 
+  - XAMPP (com redirecionamento): `http://localhost/algorise-versao-php-puro`
+  - XAMPP (direto): `http://localhost/algorise-versao-php-puro/public`
+  - PHP built-in: `http://localhost:8080`
+  - Virtual Host: `http://algorise.local`
 - **Email:** `admin@algorise.com`  
 - **Senha:** `admin123`
+
+> **💡 Solução Aplicada:** Criado redirecionamento automático da raiz para `/public/`
 
 ---
 
@@ -160,11 +183,24 @@ mysql -u root -p algorise_db < algorise_db.sql
 
 ## 🔗 **Links Úteis de Desenvolvimento**
 
-- **Dashboard:** http://localhost/algorise-versao-php-puro/dashboard
-- **Configurações:** http://localhost/algorise-versao-php-puro/configuracoes
+**📱 URLs da Aplicação (XAMPP):**
+- **Login:** http://localhost/algorise-versao-php-puro/public
+- **Dashboard:** http://localhost/algorise-versao-php-puro/public/dashboard
+- **Configurações:** http://localhost/algorise-versao-php-puro/public/configuracoes
+
+**🛠️ URLs da Aplicação (PHP Built-in):**
+- **Login:** http://localhost:8080
+- **Dashboard:** http://localhost:8080/dashboard
+- **Configurações:** http://localhost:8080/configuracoes
+
+**🔧 Ferramentas:**
 - **phpMyAdmin:** http://localhost/phpmyadmin
-- **Logs do Apache:** `C:\xampp\apache\logs\error.log`
-- **Logs do PHP:** `public/php_errors.log`
+- **XAMPP Control:** http://localhost/xampp
+
+**📝 Logs:**
+- **Apache:** `C:\xampp\apache\logs\error.log`
+- **PHP:** `public/php_errors.log`
+- **MySQL:** `C:\xampp\mysql\data\*.err`
 
 ---
 
