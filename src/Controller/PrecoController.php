@@ -10,29 +10,40 @@ class PrecoController
 {
     public function exibirPainel($params = [])
     {
-        $processo_id = $params['processo_id'] ?? 0;
-        $item_id = $params['item_id'] ?? 0;
-        $pdo = \getDbConnection();
-        $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
-        $stmtProcesso->execute([$processo_id]);
-        $processo = $stmtProcesso->fetch();
-        $stmtItem = $pdo->prepare("SELECT * FROM itens WHERE id = ? AND processo_id = ?");
-        $stmtItem->execute([$item_id, $processo_id]);
-        $item = $stmtItem->fetch();
-        if (!$processo || !$item) {
-            http_response_code(404);
-            echo "Erro 404: Processo ou Item não encontrado.";
-            return;
+        try {
+            $processo_id = $params['processo_id'] ?? 0;
+            $item_id = $params['item_id'] ?? 0;
+            $pdo = \getDbConnection();
+
+            $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
+            $stmtProcesso->execute([$processo_id]);
+            $processo = $stmtProcesso->fetch();
+
+            $stmtItem = $pdo->prepare("SELECT * FROM itens WHERE id = ? AND processo_id = ?");
+            $stmtItem->execute([$item_id, $processo_id]);
+            $item = $stmtItem->fetch();
+
+            if (!$processo || !$item) {
+                http_response_code(404);
+                echo "Erro 404: Processo ou Item não encontrado.";
+                return;
+            }
+
+            $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY criado_em DESC");
+            $stmtPrecos->execute([$item_id]);
+            $precos = $stmtPrecos->fetchAll();
+
+            $tituloPagina = "Painel de Pesquisa de Preços";
+            $paginaConteudo = __DIR__ . '/../View/precos/painel.php';
+            ob_start();
+            require __DIR__ . '/../View/layout/main.php';
+            $view = ob_get_clean();
+            echo $view;
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao exibir painel de preços: " . $e->getMessage());
+            echo "<p>Erro ao carregar o painel de preços. Tente novamente mais tarde.</p>";
         }
-        $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY criado_em DESC");
-        $stmtPrecos->execute([$item_id]);
-        $precos = $stmtPrecos->fetchAll();
-        $tituloPagina = "Painel de Pesquisa de Preços";
-        $paginaConteudo = __DIR__ . '/../View/precos/painel.php';
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
-        echo $view;
     }
 
 
@@ -77,17 +88,24 @@ class PrecoController
             exit;
         }
 
-        $sql = "INSERT INTO precos_coletados (item_id, fonte, valor, unidade_medida, data_coleta, fornecedor_nome, fornecedor_cnpj, link_evidencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
-        
-        $stmt->execute([
-            $item_id, $dados['fonte'], $dados['valor'], $dados['unidade_medida'],
-            $dados['data_coleta'], $dados['fornecedor_nome'] ?: null, $dados['fornecedor_cnpj'] ?: null, $dados['link_evidencia'] ?: null
-        ]);
+        try {
+            $sql = "INSERT INTO precos_coletados (item_id, fonte, valor, unidade_medida, data_coleta, fornecedor_nome, fornecedor_cnpj, link_evidencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            $pdo = \getDbConnection();
+            $stmt = $pdo->prepare($sql);
+            
+            $stmt->execute([
+                $item_id, $dados['fonte'], $dados['valor'], $dados['unidade_medida'],
+                $dados['data_coleta'], $dados['fornecedor_nome'] ?: null, $dados['fornecedor_cnpj'] ?: null, $dados['link_evidencia'] ?: null
+            ]);
 
-        $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Cotação manual adicionada com sucesso!'];
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Cotação manual adicionada com sucesso!'];
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao criar cotação de preço: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao salvar a cotação: ' . $e->getMessage()];
+        }
+
         header("Location: {$redirectUrl}");
         exit;
     }
@@ -138,16 +156,21 @@ class PrecoController
         $processo_id = $params['processo_id'] ?? 0;
         $item_id = $params['item_id'] ?? 0;
         $preco_id = $params['preco_id'] ?? 0;
-
-        $pdo = \getDbConnection();
-        
-        // Prepara e executa a query de exclusão
-        $sql = "DELETE FROM precos_coletados WHERE id = ? AND item_id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$preco_id, $item_id]);
-
-        // Redireciona o usuário de volta para a página de pesquisa
         $redirectUrl = "/processos/{$processo_id}/itens/{$item_id}/pesquisar";
+
+        try {
+            $pdo = \getDbConnection();
+            $sql = "DELETE FROM precos_coletados WHERE id = ? AND item_id = ?";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$preco_id, $item_id]);
+
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Preço excluído com sucesso!'];
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao excluir preço: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao excluir o preço: ' . $e->getMessage()];
+        }
+
         header("Location: {$redirectUrl}");
         exit;
     }
@@ -190,7 +213,7 @@ class PrecoController
             $pdo->commit();
         } catch (\Exception $e) {
             $pdo->rollBack();
-            // Em um app real, logaríamos o erro $e->getMessage()
+            error_log("Falha ao salvar os preços: " . $e->getMessage());
             \Joabe\Buscaprecos\Core\Router::json(['status' => 'error', 'message' => 'Falha ao salvar os preços.'], 500);
             return;
         }
@@ -381,6 +404,7 @@ class PrecoController
                     $mail->send();
                 } catch (Exception $e) {
                     $erroDetalhado = "Não foi possível enviar para {$fornecedor['email']}. Erro PHPMailer: {$e->getMessage()} | ErrorInfo: {$mail->ErrorInfo}";
+                    error_log("Erro ao enviar e-mail: " . $erroDetalhado);
                     $errosEnvio[] = $erroDetalhado;
                     file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - ERRO EMAIL: " . $erroDetalhado . "\n", FILE_APPEND);
                 }
@@ -414,95 +438,129 @@ class PrecoController
     // Métodos auxiliares
     private function getDadosFornecedores(\PDO $pdo, array $fornecedorIds): array
     {
-        $placeholders = implode(',', array_fill(0, count($fornecedorIds), '?'));
-        $stmt = $pdo->prepare("SELECT id, razao_social, email FROM fornecedores WHERE id IN ($placeholders)");
-        $stmt->execute($fornecedorIds);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        if (empty($fornecedorIds)) return [];
+        try {
+            $placeholders = implode(',', array_fill(0, count($fornecedorIds), '?'));
+            $stmt = $pdo->prepare("SELECT id, razao_social, email FROM fornecedores WHERE id IN ($placeholders)");
+            $stmt->execute($fornecedorIds);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Erro ao buscar dados de fornecedores: " . $e->getMessage());
+            return [];
+        }
     }
 
-private function getItensHtml(\PDO $pdo, array $itemIds): string
+    private function getItensHtml(\PDO $pdo, array $itemIds): string
     {
-        $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
-        $stmt = $pdo->prepare("SELECT descricao FROM itens WHERE id IN ($placeholders)");
-        $stmt->execute($itemIds);
-        $listaItensDesc = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        return '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $listaItensDesc)) . '</li></ul>';
+        if (empty($itemIds)) return '';
+        try {
+            $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+            $stmt = $pdo->prepare("SELECT descricao FROM itens WHERE id IN ($placeholders)");
+            $stmt->execute($itemIds);
+            $listaItensDesc = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            return '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $listaItensDesc)) . '</li></ul>';
+        } catch (\PDOException $e) {
+            error_log("Erro ao buscar HTML de itens: " . $e->getMessage());
+            return '';
+        }
     }
 
     public function exibirAnalise($params = [])
     {
-        $processo_id = $params['processo_id'] ?? 0;
-        $item_id = $params['item_id'] ?? 0;
-        $pdo = \getDbConnection();
+        try {
+            $processo_id = $params['processo_id'] ?? 0;
+            $item_id = $params['item_id'] ?? 0;
+            $pdo = \getDbConnection();
 
-        $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
-        $stmtProcesso->execute([$processo_id]);
-        $processo = $stmtProcesso->fetch();
+            $stmtProcesso = $pdo->prepare("SELECT * FROM processos WHERE id = ?");
+            $stmtProcesso->execute([$processo_id]);
+            $processo = $stmtProcesso->fetch();
 
-        $stmtItem = $pdo->prepare("SELECT * FROM itens WHERE id = ?");
-        $stmtItem->execute([$item_id]);
-        $item = $stmtItem->fetch();
-        
-        $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY valor ASC");
-        $stmtPrecos->execute([$item_id]);
-        $precos = $stmtPrecos->fetchAll();
-
-        // Filtra apenas os preços "considerados" para as estatísticas
-        $precosConsiderados = array_filter($precos, fn($p) => $p['status_analise'] === 'considerado');
-        
-        $estatisticas = ['total' => 0, 'minimo' => 0, 'maximo' => 0, 'media' => 0, 'mediana' => 0];
-
-        if (!empty($precosConsiderados)) {
-            $valores = array_column($precosConsiderados, 'valor');
-            sort($valores);
-            $count = count($valores);
+            $stmtItem = $pdo->prepare("SELECT * FROM itens WHERE id = ?");
+            $stmtItem->execute([$item_id]);
+            $item = $stmtItem->fetch();
             
-            $estatisticas['total'] = $count;
-            $estatisticas['minimo'] = $valores[0];
-            $estatisticas['maximo'] = $valores[$count - 1];
-            $estatisticas['media'] = array_sum($valores) / $count;
+            $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY valor ASC");
+            $stmtPrecos->execute([$item_id]);
+            $precos = $stmtPrecos->fetchAll();
+
+            // Filtra apenas os preços "considerados" para as estatísticas
+            $precosConsiderados = array_filter($precos, fn($p) => $p['status_analise'] === 'considerado');
             
-            $meio = floor(($count - 1) / 2);
-            if ($count % 2) { 
-                $estatisticas['mediana'] = $valores[$meio];
-            } else { 
-                $estatisticas['mediana'] = ($valores[$meio] + $valores[$meio + 1]) / 2.0;
+            $estatisticas = ['total' => 0, 'minimo' => 0, 'maximo' => 0, 'media' => 0, 'mediana' => 0];
+
+            if (!empty($precosConsiderados)) {
+                $valores = array_column($precosConsiderados, 'valor');
+                sort($valores);
+                $count = count($valores);
+                
+                $estatisticas['total'] = $count;
+                $estatisticas['minimo'] = $valores[0];
+                $estatisticas['maximo'] = $valores[$count - 1];
+                $estatisticas['media'] = array_sum($valores) / $count;
+                
+                $meio = floor(($count - 1) / 2);
+                if ($count % 2) { 
+                    $estatisticas['mediana'] = $valores[$meio];
+                } else { 
+                    $estatisticas['mediana'] = ($valores[$meio] + $valores[$meio + 1]) / 2.0;
+                }
             }
-        }
-        
-        $tituloPagina = "Mesa de Análise de Preços";
-        $paginaConteudo = __DIR__ . '/../View/analise/mesa.php';
-        
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
+            
+            $tituloPagina = "Mesa de Análise de Preços";
+            $paginaConteudo = __DIR__ . '/../View/analise/mesa.php';
+            
+            ob_start();
+            require __DIR__ . '/../View/layout/main.php';
+            $view = ob_get_clean();
 
-        echo $view;
+            echo $view;
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao exibir análise de preços: " . $e->getMessage());
+            echo "<p>Erro ao carregar a análise de preços. Tente novamente mais tarde.</p>";
+        }
     }
 
     public function desconsiderarPreco($params = [])
     {
-        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
-        $justificativa = $dados['justificativa_descarte'];
-
-        $sql = "UPDATE precos_coletados SET status_analise = 'desconsiderado', justificativa_descarte = ? WHERE id = ?";
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$justificativa, $params['preco_id']]);
-
         $redirectUrl = "/processos/{$params['processo_id']}/analise";
+        try {
+            $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+            $justificativa = $dados['justificativa_descarte'];
+
+            $sql = "UPDATE precos_coletados SET status_analise = 'desconsiderado', justificativa_descarte = ? WHERE id = ?";
+            $pdo = \getDbConnection();
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$justificativa, $params['preco_id']]);
+
+            $_SESSION['flash_success'] = 'Preço desconsiderado com sucesso.';
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao desconsiderar preço: " . $e->getMessage());
+            $_SESSION['flash_error'] = 'Erro ao atualizar o preço.';
+        }
+
         header("Location: {$redirectUrl}");
         exit;
     }
 
     public function reconsiderarPreco($params = [])
     {
-        $sql = "UPDATE precos_coletados SET status_analise = 'considerado', justificativa_descarte = NULL WHERE id = ?";
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$params['preco_id']]);
-
         $redirectUrl = "/processos/{$params['processo_id']}/analise";
+        try {
+            $sql = "UPDATE precos_coletados SET status_analise = 'considerado', justificativa_descarte = NULL WHERE id = ?";
+            $pdo = \getDbConnection();
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$params['preco_id']]);
+
+            $_SESSION['flash_success'] = 'Preço reconsiderado com sucesso.';
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao reconsiderar preço: " . $e->getMessage());
+            $_SESSION['flash_error'] = 'Erro ao atualizar o preço.';
+        }
+
         header("Location: {$redirectUrl}");
         exit;
     }

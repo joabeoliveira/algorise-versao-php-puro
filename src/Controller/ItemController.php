@@ -23,7 +23,7 @@ class ItemController
         $processo = $stmtProcesso->fetch();
 
         if (!$processo) {
-            $_SESSION['flash_error'] = 'Processo não encontrado.';
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Processo não encontrado.'];
             \Joabe\Buscaprecos\Core\Router::redirect('/processos');
             return;
         }
@@ -52,45 +52,79 @@ class ItemController
 
     // NOVO MÉTODO: Salva o novo item no banco de dados
     public function criar($params = [])
-{
-    $processo_id = $params['processo_id'];
-    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
-    $pdo = \getDbConnection();
-    $redirectUrl = "/processos/{$processo_id}/itens"; // URL de redirecionamento padrão
+    {
+        try {
+            $processo_id = $params['processo_id'];
+            $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+            $pdo = \getDbConnection();
+            $redirectUrl = "/processos/{$processo_id}/itens";
 
-    // Validação de duplicidade
-    $catmat = !empty($dados['catmat_catser']) ? $dados['catmat_catser'] : null;
-    $sqlVerifica = "SELECT COUNT(*) FROM itens WHERE processo_id = ? AND (numero_item = ? OR (catmat_catser IS NOT NULL AND catmat_catser != '' AND catmat_catser = ?))";
-    $stmtVerifica = $pdo->prepare($sqlVerifica);
-    $stmtVerifica->execute([$processo_id, $dados['numero_item'], $catmat]);
+            // SQL DIRETO - sem DatabaseHelper
+            
+            // Validação básica
+            if (empty($dados['descricao'])) {
+                $_SESSION['flash'] = [
+                    'tipo' => 'danger',
+                    'mensagem' => 'A descrição do item é obrigatória.',
+                    'dados_formulario' => $dados
+                ];
+                \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+                return;
+            }
 
-    if ($stmtVerifica->fetchColumn() > 0) {
-        // ERRO: Item duplicado. Salva a mensagem de erro e os dados do formulário na sessão.
-        $_SESSION['flash'] = [
-            'tipo' => 'danger',
-            'mensagem' => 'Erro: Já existe um item com este Número ou CATMAT.',
-            'dados_formulario' => $dados
-        ];
-        \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+            // Verificar duplicidade de número do item
+            if (!empty($dados['numero_item'])) {
+                $sqlVerifica = "SELECT COUNT(*) FROM itens WHERE processo_id = ? AND numero_item = ?";
+                $stmtVerifica = $pdo->prepare($sqlVerifica);
+                $stmtVerifica->execute([$processo_id, $dados['numero_item']]);
+
+                if ($stmtVerifica->fetchColumn() > 0) {
+                    $_SESSION['flash'] = [
+                        'tipo' => 'danger',
+                        'mensagem' => 'Já existe um item com este número.',
+                        'dados_formulario' => $dados
+                    ];
+                    \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+                    return;
+                }
+            }
+
+            // SQL DIRETO - inserir item
+            $stmt = $pdo->prepare("
+                INSERT INTO itens (processo_id, numero_item, catmat, descricao, unidade_medida, quantidade_estimada, valor_estimado) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $processo_id,
+                $dados['numero_item'] ?? null,
+                $dados['catmat'] ?? $dados['catmat_catser'] ?? null,
+                $dados['descricao'] ?? '',
+                $dados['unidade_medida'] ?? $dados['unidade'] ?? 'UN',
+                $dados['quantidade'] ?? 1,
+                $dados['valor_estimado'] ?? $dados['valor_unitario'] ?? null
+            ]);
+            
+
+
+            // SUCESSO: Salva a mensagem de sucesso na sessão.
+            $_SESSION['flash'] = [
+                'tipo' => 'success',
+                'mensagem' => 'Item adicionado com sucesso!'
+            ];
+
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+            
+        } catch (\Exception $e) {
+            error_log("Erro ao criar item: " . $e->getMessage());
+            $_SESSION['flash'] = [
+                'tipo' => 'danger',
+                'mensagem' => 'Erro ao criar item: ' . $e->getMessage(),
+                'dados_formulario' => $dados ?? []
+            ];
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+        }
     }
-
-    // Se passou na validação, executa o INSERT
-    $sql = "INSERT INTO itens (processo_id, numero_item, catmat_catser, descricao, unidade_medida, quantidade) VALUES (?, ?, ?, ?, ?, ?)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        $processo_id, $dados['numero_item'], $catmat,
-        $dados['descricao'], $dados['unidade_medida'],
-        $dados['quantidade']
-    ]);
-
-    // SUCESSO: Salva a mensagem de sucesso na sessão.
-    $_SESSION['flash'] = [
-        'tipo' => 'success',
-        'mensagem' => 'Item adicionado com sucesso!'
-    ];
-
-    \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
-}
     public function exibirFormularioEdicao($params = [])
     {
         $processo_id = $params['processo_id'];
@@ -108,7 +142,7 @@ class ItemController
     $item = $stmtItem->fetch();
 
     if (!$processo || !$item) {
-        $_SESSION['flash_error'] = 'Processo ou item não encontrado.';
+        $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Processo ou item não encontrado.'];
         \Joabe\Buscaprecos\Core\Router::redirect('/processos');
         return;
     }
@@ -126,71 +160,105 @@ class ItemController
 
     // NOVO MÉTODO: Recebe os dados do formulário e atualiza o item no banco
     public function atualizar($params = [])
-{
-    $processo_id = $params['processo_id'];
-    $item_id = $params['item_id'];
-    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
-    $pdo = \getDbConnection();
+    {
+        $processo_id = $params['processo_id'];
+        $item_id = $params['item_id'];
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+        $redirectUrl = "/processos/{$processo_id}/itens";
+        $editUrl = "/processos/{$processo_id}/itens/{$item_id}/editar";
 
-    // --- INÍCIO DA VALIDAÇÃO ANTI-DUPLICIDADE NA EDIÇÃO ---
-    $catmat = !empty($dados['catmat_catser']) ? $dados['catmat_catser'] : null;
+        try {
+            $pdo = \getDbConnection();
 
-    // A query agora inclui "AND id != ?" para ignorar o próprio item na verificação
-    // e também verifica se o catmat não está vazio antes de comparar.
-    $sqlVerifica = "SELECT COUNT(*) FROM itens WHERE processo_id = ? AND (numero_item = ? OR (catmat_catser IS NOT NULL AND catmat_catser = ?)) AND id != ?";
-    $stmtVerifica = $pdo->prepare($sqlVerifica);
-    $stmtVerifica->execute([$processo_id, $dados['numero_item'], $catmat, $item_id]);
-    $count = $stmtVerifica->fetchColumn();
+            // Validação de duplicidade para numero_item
+            if (!empty($dados['numero_item'])) {
+                $sqlVerificaNum = "SELECT COUNT(*) FROM itens WHERE processo_id = ? AND numero_item = ? AND id != ?";
+                $stmtVerificaNum = $pdo->prepare($sqlVerificaNum);
+                $stmtVerificaNum->execute([$processo_id, $dados['numero_item'], $item_id]);
+                if ($stmtVerificaNum->fetchColumn() > 0) {
+                    $_SESSION['flash'] = [
+                        'tipo' => 'danger',
+                        'mensagem' => 'Já existe um item com este número neste processo.',
+                        'dados_formulario' => $dados
+                    ];
+                    \Joabe\Buscaprecos\Core\Router::redirect($editUrl);
+                    return;
+                }
+            }
 
-    if ($count > 0) {
-        // Se encontrou duplicado, redireciona de volta com uma mensagem de erro
-        $_SESSION['flash_error'] = 'Já existe um item com este número ou CATMAT neste processo.';
-        \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
-        return;
+            // Validação de duplicidade para catmat_catser
+            if (!empty($dados['catmat_catser'])) {
+                $sqlVerificaCatmat = "SELECT COUNT(*) FROM itens WHERE processo_id = ? AND catmat_catser = ? AND id != ?";
+                $stmtVerificaCatmat = $pdo->prepare($sqlVerificaCatmat);
+                $stmtVerificaCatmat->execute([$processo_id, $dados['catmat_catser'], $item_id]);
+                if ($stmtVerificaCatmat->fetchColumn() > 0) {
+                    $_SESSION['flash'] = [
+                        'tipo' => 'danger',
+                        'mensagem' => 'Já existe um item com este CATMAT/CATSER neste processo.',
+                        'dados_formulario' => $dados
+                    ];
+                    \Joabe\Buscaprecos\Core\Router::redirect($editUrl);
+                    return;
+                }
+            }
+
+            // SQL DIRETO - atualização simples
+            
+            $stmt = $pdo->prepare("
+                UPDATE itens 
+                SET numero_item = ?, catmat = ?, descricao = ?, unidade_medida = ?, quantidade_estimada = ?, valor_estimado = ?
+                WHERE id = ? AND processo_id = ?
+            ");
+            
+            $stmt->execute([
+                $dados['numero_item'] ?? null,
+                $dados['catmat'] ?? $dados['catmat_catser'] ?? null,
+                $dados['descricao'] ?? '',
+                $dados['unidade_medida'] ?? $dados['unidade'] ?? 'UN',
+                $dados['quantidade_estimada'] ?? $dados['quantidade'] ?? 1,
+                $dados['valor_estimado'] ?? $dados['valor_unitario'] ?? null,
+                $item_id,
+                $processo_id
+            ]);
+
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Item atualizado com sucesso.'];
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao atualizar item: " . $e->getMessage());
+            $_SESSION['flash'] = [
+                'tipo' => 'danger',
+                'mensagem' => 'Ocorreu um erro inesperado ao atualizar o item. Tente novamente.',
+                'dados_formulario' => $dados
+            ];
+            \Joabe\Buscaprecos\Core\Router::redirect($editUrl);
+        }
     }
-    // --- FIM DA VALIDAÇÃO ---
-
-    // Se passou na validação, continua com o UPDATE
-    $sql = "UPDATE itens SET 
-                numero_item = ?, 
-                catmat_catser = ?, 
-                descricao = ?, 
-                unidade_medida = ?, 
-                quantidade = ? 
-            WHERE id = ? AND processo_id = ?";
-    
-    $stmt = $pdo->prepare($sql);
-    
-    $stmt->execute([
-        $dados['numero_item'],
-        $catmat, // Usa a variável tratada
-        $dados['descricao'],
-        $dados['unidade_medida'],
-        $dados['quantidade'],
-        $item_id,
-        $processo_id
-    ]);
-    // Redireciona de volta para a lista de itens do processo
-    $_SESSION['flash_success'] = 'Item atualizado com sucesso.';
-    \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
-
-}
 
     // NOVO MÉTODO: Processa a exclusão de um item
     public function excluir($params = [])
 {
     $processo_id = $params['processo_id'];
     $item_id = $params['item_id'];
-    $pdo = \getDbConnection();
+    $redirectUrl = "/processos/{$processo_id}/itens";
 
-    // Prepara e executa a query de exclusão
-    $sql = "DELETE FROM itens WHERE id = ? AND processo_id = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$item_id, $processo_id]);
+    try {
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("DELETE FROM itens WHERE id = ? AND processo_id = ?");
+        $stmt->execute([$item_id, $processo_id]);
 
-    // Redireciona de volta para a lista de itens do processo
-    \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
+        $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Item excluído com sucesso.'];
 
+    } catch (\PDOException $e) {
+        error_log("Erro ao excluir item: " . $e->getMessage());
+        if ($e->getCode() == 23000) { // Foreign key constraint
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Não é possível excluir o item, pois ele possui cotações ou preços associados.'];
+        } else {
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro inesperado ao excluir o item.'];
+        }
+    }
+
+    \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
 }
 
     //     MÉTODOS PARA IMPORTAÇÃO DE ITENS
@@ -229,6 +297,7 @@ class ItemController
     if (!$arquivoPlanilha || $arquivoPlanilha['error'] !== UPLOAD_ERR_OK) {
         $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro no upload do arquivo.'];
         \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+        return; // Adicionado para garantir que a execução pare
     }
 
     try {
@@ -238,7 +307,7 @@ class ItemController
         $linhasParaImportar = [];
         $errosValidacao = [];
 
-        // FASE 1: PRÉ-VALIDAÇÃO (Lê todas as linhas antes de tocar no banco)
+        // FASE 1: PRÉ-VALIDAÇÃO
         foreach ($sheet->getRowIterator(2) as $row) {
             $numLinha = $row->getRowIndex();
             $cells = [];
@@ -246,17 +315,15 @@ class ItemController
                 $cells[] = $cell->getValue();
             }
 
-            // --- INÍCIO DA ALTERAÇÃO ---
-            $numeroItem = filter_var($cells[0] ?? 0, FILTER_VALIDATE_INT);
+            $numeroItem = filter_var($cells[0] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             $catmat     = preg_replace('/\D/', '', trim($cells[1] ?? ''));
             $descricao  = trim($cells[2] ?? '');
             $unidade    = trim($cells[3] ?? '');
-            $quantidade = filter_var($cells[4] ?? 0, FILTER_VALIDATE_INT);
+            $quantidade = filter_var($cells[4] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-            if (empty($numeroItem) && empty($catmat) && empty($descricao)) { continue; } // Ignora linha totalmente vazia
+            if (empty($numeroItem) && empty($catmat) && empty($descricao)) { continue; } // Ignora linha vazia
 
-            // Validação rigorosa
-            if ($numeroItem === false || $numeroItem <= 0 || empty($catmat) || empty($descricao) || empty($unidade) || $quantidade === false || $quantidade <= 0) {
+            if ($numeroItem === false || empty($catmat) || empty($descricao) || empty($unidade) || $quantidade === false) {
                 $errosValidacao[] = $numLinha;
             } else {
                 $linhasParaImportar[] = [
@@ -265,46 +332,49 @@ class ItemController
                     'descricao'     => $descricao,
                     'unidade_medida'=> $unidade,
                     'quantidade'    => $quantidade,
+                    'processo_id'   => $processo_id // Adiciona o processo_id aqui
                 ];
             }
         }
-        // --- FIM DA ALTERAÇÃO ---
 
         if (!empty($errosValidacao)) {
-            $mensagemErro = "A importação foi cancelada. Todos os campos são obrigatórios. Verifique as seguintes linhas na sua planilha: " . implode(', ', $errosValidacao);
+            $mensagemErro = "A importação foi cancelada. Todos os campos são obrigatórios e devem ser válidos. Verifique as seguintes linhas: " . implode(', ', $errosValidacao);
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $mensagemErro];
             \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+            return; // Adicionado para garantir
         }
 
-        // FASE 2: IMPORTAÇÃO NO BANCO DE DADOS
+        if (empty($linhasParaImportar)) {
+            $_SESSION['flash'] = ['tipo' => 'info', 'mensagem' => 'Nenhum item válido para importar foi encontrado na planilha.'];
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+            return; // Adicionado para garantir
+        }
+
+        // FASE 2: IMPORTAÇÃO NO BANCO
         $pdo = \getDbConnection();
-        // --- INÍCIO DA ALTERAÇÃO NO SQL ---
-        $sql = "INSERT INTO itens (numero_item, catmat_catser, descricao, unidade_medida, quantidade, processo_id) VALUES (?, ?, ?, ?, ?, ?)";
-        // --- FIM DA ALTERAÇÃO NO SQL ---
+        
+        // Montagem dinâmica do SQL
+        $primeiraLinha = $linhasParaImportar[0];
+        $colunas = array_keys($primeiraLinha);
+        $placeholders = array_fill(0, count($colunas), '?');
+        $sql = "INSERT INTO itens (" . implode(', ', $colunas) . ") VALUES (" . implode(', ', $placeholders) . ")";
         $stmt = $pdo->prepare($sql);
         
         $pdo->beginTransaction();
         foreach ($linhasParaImportar as $item) {
-            // --- INÍCIO DA ALTERAÇÃO NO EXECUTE ---
-            $stmt->execute([
-                $item['numero_item'],
-                $item['catmat_catser'],
-                $item['descricao'],
-                $item['unidade_medida'],
-                $item['quantidade'],
-                $processo_id
-            ]);
-            // --- FIM DA ALTERAÇÃO NO EXECUTE ---
+            $stmt->execute(array_values($item));
         }
         $pdo->commit();
 
     } catch (\Exception $e) {
         if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
-        $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro crítico ao processar a planilha: ' . $e->getMessage()];
+        error_log("Erro ao processar planilha: " . $e->getMessage()); // Log do erro real
+        $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro crítico ao processar a planilha. Verifique o formato do arquivo e os dados.'];
         \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+        return; // Adicionado para garantir
     }
     
-    $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => "Importação concluída! " . count($linhasParaImportar) . " itens foram adicionados com sucesso ao processo."];
+    $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => "Importação concluída! " . count($linhasParaImportar) . " itens foram adicionados com sucesso."];
     \Joabe\Buscaprecos\Core\Router::redirect("/processos/{$processo_id}/itens");
 }
 

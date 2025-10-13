@@ -4,10 +4,19 @@
  * Mantém apenas as dependências essenciais
  */
 
-// Habilita a exibição de todos os erros (bom para desenvolvimento)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Configurações de erro baseadas no ambiente
+if (isset($_SERVER['GAE_ENV']) || ($_ENV['APP_ENV'] ?? 'development') === 'production') {
+    // Produção - ocultar erros
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+    error_reporting(E_ERROR | E_WARNING | E_PARSE);
+} else {
+    // Desenvolvimento - mostrar todos os erros
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 
 // Define timezone padrão
 date_default_timezone_set('America/Sao_Paulo');
@@ -15,42 +24,88 @@ date_default_timezone_set('America/Sao_Paulo');
 // Carrega o autoloader do Composer (apenas para phpdotenv)
 require __DIR__ . '/../vendor/autoload.php';
 
-// Carrega as variáveis de ambiente do arquivo .env
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-try {
-    $dotenv->load();
-} catch (Exception $e) {
-    // Se não conseguir carregar o .env, usa valores padrão ou falha graciosamente
-    if ($_ENV['APP_ENV'] ?? 'production' !== 'production') {
-        echo "Aviso: Arquivo .env não encontrado. Configure as variáveis de ambiente.\n";
+// Carrega as variáveis de ambiente do arquivo .env (apenas em desenvolvimento)
+// No Google App Engine, as variáveis vêm do app.yaml
+if (!isset($_SERVER['GAE_ENV']) && !isset($_SERVER['GOOGLE_CLOUD_PROJECT'])) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+    try {
+        $dotenv->load();
+    } catch (Exception $e) {
+        // Se não conseguir carregar o .env, usa valores padrão ou falha graciosamente
+        if (($_ENV['APP_ENV'] ?? 'development') === 'development') {
+            error_log("Aviso: Arquivo .env não encontrado. Configure as variáveis de ambiente.");
+        }
     }
 }
 
 /**
  * Função para retornar uma instância da conexão PDO com o banco de dados.
+ * Funciona automaticamente tanto no desenvolvimento local quanto no Google Cloud.
  * @return PDO
  */
 function getDbConnection(): PDO
 {
-    // Configurações do banco - usa .env se disponível, senão valores padrão
-    $host = $_ENV['DB_HOST'] ?? 'localhost';
-    $dbname = $_ENV['DB_DATABASE'] ?? 'buscaprecos';
+    // Configurações do banco baseadas no ambiente
+    $dbname = $_ENV['DB_DATABASE'] ?? 'algorise';
     $user = $_ENV['DB_USER'] ?? 'root';
     $pass = $_ENV['DB_PASSWORD'] ?? '';
     $charset = 'utf8mb4';
-
-    $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+    
     $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Lança exceções em caso de erro
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Retorna os resultados como arrays associativos
-        PDO::ATTR_EMULATE_PREPARES   => false,                  // Usa 'prepared statements' reais
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
     ];
 
     try {
-        return new PDO($dsn, $user, $pass, $options);
+        if (isAppEngine()) {
+            // Google App Engine - usar Cloud SQL via Unix Socket
+            $connectionName = $_ENV['CLOUD_SQL_CONNECTION_NAME'] ?? '';
+            if (empty($connectionName)) {
+                logarEvento('error', 'A variável de ambiente CLOUD_SQL_CONNECTION_NAME não está definida no App Engine.');
+                throw new \PDOException('Configuração de banco de dados incompleta para o ambiente de produção.', 500);
+            }
+            $socketDir = $_ENV['DB_SOCKET_DIR'] ?? '/cloudsql';
+            $dsn = "mysql:unix_socket=$socketDir/$connectionName;dbname=$dbname;charset=$charset";
+            
+            logarEvento('info', "Conectando ao Cloud SQL via Unix Socket: $socketDir/$connectionName");
+            
+        } elseif (isProduction()) {
+            // Produção não-AppEngine (Cloud Run, Compute Engine, etc)
+            $host = $_ENV['DB_HOST'] ?? 'localhost';
+            $port = $_ENV['DB_PORT'] ?? 3306;
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+            
+            logarEvento('info', "Conectando ao MySQL em produção: $host:$port");
+            
+        } else {
+            // Desenvolvimento local (XAMPP, Docker, etc)
+            $host = $_ENV['DB_HOST'] ?? 'localhost';
+            $port = $_ENV['DB_PORT'] ?? 3306;
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+            
+            // Em desenvolvimento, permite conexão sem senha
+            if (empty($pass) && $user === 'root') {
+                logarEvento('debug', "Conectando ao MySQL local (XAMPP): $host:$port");
+            }
+        }
+
+        $pdo = new PDO($dsn, $user, $pass, $options);
+        
+        logarEvento('info', "Conexão com banco estabelecida com sucesso - Ambiente: " . getEnvironment());
+        return $pdo;
+        
     } catch (\PDOException $e) {
-        // Em um ambiente de produção, você logaria este erro em vez de exibi-lo
-        throw new \PDOException($e->getMessage(), (int)$e->getCode());
+        $errorMsg = "Erro de conexão com banco de dados: " . $e->getMessage();
+        logarEvento('error', $errorMsg);
+        
+        if (isDevelopment()) {
+            // Em desenvolvimento, mostra o erro detalhado
+            throw new \PDOException($errorMsg, (int)$e->getCode());
+        } else {
+            // Em produção, erro genérico por segurança
+            throw new \PDOException('Erro de conexão com banco de dados', 500);
+        }
     }
 }
 
@@ -171,11 +226,124 @@ function gerarToken($length = 32): string
 }
 
 /**
+ * Retorna o caminho de storage baseado no ambiente
+ */
+function getStoragePath($subpath = ''): string
+{
+    if (isAppEngine()) {
+        // Google App Engine - usar Cloud Storage
+        $bucket = $_ENV['STORAGE_BUCKET'] ?? 'algorise-storage';
+        $basePath = "gs://$bucket/";
+    } elseif (isProduction()) {
+        // Produção não-AppEngine - pasta do servidor
+        $basePath = $_ENV['STORAGE_PATH'] ?? '/var/www/storage/';
+    } else {
+        // Desenvolvimento local - pasta relativa
+        $basePath = __DIR__ . '/../storage/';
+    }
+    
+    return $basePath . ltrim($subpath, '/');
+}
+
+/**
+ * Retorna URL pública para arquivos
+ */
+function getPublicStorageUrl($filepath): string
+{
+    if (isAppEngine()) {
+        // Google App Engine - URL do Cloud Storage
+        $bucket = $_ENV['STORAGE_BUCKET'] ?? 'algorise-storage';
+        return "https://storage.googleapis.com/$bucket/" . ltrim($filepath, '/');
+    } else {
+        // Desenvolvimento e produção tradicional - URL local
+        $baseUrl = $_ENV['APP_URL'] ?? 'http://localhost:8080';
+        return $baseUrl . '/storage/' . ltrim($filepath, '/');
+    }
+}
+
+/**
+ * Salva arquivo no storage apropriado
+ */
+function salvarArquivo($conteudo, $caminho): bool
+{
+    $fullPath = getStoragePath($caminho);
+    
+    try {
+        if (isAppEngine()) {
+            // Google Cloud Storage
+            $context = stream_context_create();
+            return file_put_contents($fullPath, $conteudo, false, $context) !== false;
+        } else {
+            // Sistema de arquivos local
+            $dir = dirname($fullPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            return file_put_contents($fullPath, $conteudo) !== false;
+        }
+    } catch (Exception $e) {
+        errorLog("Erro ao salvar arquivo $caminho: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Lê arquivo do storage
+ */
+function lerArquivo($caminho): string|false
+{
+    $fullPath = getStoragePath($caminho);
+    
+    try {
+        return file_get_contents($fullPath);
+    } catch (Exception $e) {
+        errorLog("Erro ao ler arquivo $caminho: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Detecta se está rodando em produção (Google Cloud)
+ */
+function isProduction(): bool
+{
+    return isset($_SERVER['GAE_ENV']) || 
+           isset($_SERVER['GOOGLE_CLOUD_PROJECT']) ||
+           ($_ENV['APP_ENV'] ?? 'development') === 'production';
+}
+
+/**
+ * Detecta se está rodando no Google App Engine
+ */
+function isAppEngine(): bool
+{
+    return isset($_SERVER['GAE_ENV']);
+}
+
+/**
+ * Detecta se está rodando em desenvolvimento local
+ */
+function isDevelopment(): bool
+{
+    return !isProduction();
+}
+
+/**
+ * Retorna o ambiente atual
+ */
+function getEnvironment(): string
+{
+    if (isAppEngine()) return 'gcp-appengine';
+    if (isProduction()) return 'production';
+    return 'development';
+}
+
+/**
  * Função para debug (apenas em desenvolvimento)
  */
 function debug($data): void
 {
-    if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
+    if (isDevelopment()) {
         echo '<pre>';
         var_dump($data);
         echo '</pre>';
@@ -183,22 +351,67 @@ function debug($data): void
 }
 
 /**
- * Função para logs simples
+ * Função para logs híbrida - funciona no desenvolvimento e produção
  */
 function logarEvento($nivel, $mensagem, $contexto = []): void
 {
-    $logFile = __DIR__ . '/../storage/logs/app-' . date('Y-m-d') . '.log';
-    $logDir = dirname($logFile);
-    
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0755, true);
-    }
-    
     $timestamp = date('Y-m-d H:i:s');
     $contextoStr = empty($contexto) ? '' : ' ' . json_encode($contexto);
-    $logEntry = "[$timestamp] $nivel: $mensagem$contextoStr\n";
+    $environment = getEnvironment();
+    $logMessage = "[$timestamp] [$environment] $nivel: $mensagem$contextoStr";
     
-    file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+    if (isAppEngine()) {
+        // Google App Engine - usar error_log que vai para Cloud Logging
+        error_log($logMessage);
+        
+    } elseif (isProduction()) {
+        // Produção não-AppEngine - usar syslog
+        openlog('algorise', LOG_PID | LOG_PERROR, LOG_USER);
+        $priority = match(strtolower($nivel)) {
+            'debug' => LOG_DEBUG,
+            'info' => LOG_INFO,
+            'warning' => LOG_WARNING,
+            'error' => LOG_ERR,
+            default => LOG_INFO
+        };
+        syslog($priority, $logMessage);
+        closelog();
+        
+    } else {
+        // Desenvolvimento local - arquivo de log
+        $logFile = __DIR__ . '/../storage/logs/app-' . date('Y-m-d') . '.log';
+        $logDir = dirname($logFile);
+        
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        
+        $logEntry = $logMessage . "\n";
+        file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+        
+        // Em desenvolvimento, também mostra no erro do PHP para debug
+        if (strtolower($nivel) === 'error' || strtolower($nivel) === 'warning') {
+            error_log($logMessage);
+        }
+    }
+}
+
+/**
+ * Função para log de debug (apenas em desenvolvimento)
+ */
+function debugLog($mensagem, $contexto = []): void
+{
+    if (isDevelopment()) {
+        logarEvento('debug', $mensagem, $contexto);
+    }
+}
+
+/**
+ * Função para log de erro sempre (todos os ambientes)
+ */
+function errorLog($mensagem, $contexto = []): void
+{
+    logarEvento('error', $mensagem, $contexto);
 }
 
 /**
@@ -222,14 +435,39 @@ ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
 
 /**
- * Headers de segurança básicos
+ * Headers de segurança condicionais baseados no ambiente
  */
-if (!headers_sent()) {
+function aplicarHeadersSeguranca(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+    
+    // Headers básicos para todos os ambientes
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('X-XSS-Protection: 1; mode=block');
     
-    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    if (isProduction()) {
+        // Headers de segurança para produção
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+        header('Content-Security-Policy: default-src \'self\'; script-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://unpkg.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src \'self\' https://cdn.jsdelivr.net; img-src \'self\' data: https:;');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        
+        // Cache control para produção
+        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/css/') !== false || 
+            strpos($_SERVER['REQUEST_URI'] ?? '', '/js/') !== false) {
+            header('Cache-Control: public, max-age=31536000'); // 1 ano para assets
+        }
+        
+    } else {
+        // Headers para desenvolvimento
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
     }
 }
+
+// Aplicar headers automaticamente
+aplicarHeadersSeguranca();

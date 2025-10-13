@@ -23,31 +23,25 @@ class UsuarioController
      */
     public function processarLogin($params = [])
     {
-        try {
-            $dados = Router::getPostData();
-            $email = $dados['email'] ?? '';
-            $senha = $dados['senha'] ?? '';
+        $dados = Router::getPostData();
+        $email = $dados['email'] ?? '';
+        $senha = $dados['senha'] ?? '';
 
-            $pdo = \getDbConnection();
-            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
-            $stmt->execute([$email]);
-            $usuario = $stmt->fetch();
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+        $stmt->execute([$email]);
+        $usuario = $stmt->fetch();
 
-            if ($usuario && password_verify($senha, $usuario['senha'])) {
-                $_SESSION['usuario_id'] = $usuario['id'];
-                $_SESSION['usuario_nome'] = $usuario['nome'];
-                $_SESSION['usuario_role'] = $usuario['role'];
-                Router::redirect('/dashboard');
-                return;
-            }
-
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'E-mail ou senha inválidos.'];
-            Router::redirect('/login');
-
-        } catch (\Exception $e) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro inesperado. Tente novamente.'];
-            Router::redirect('/login');
+        if ($usuario && password_verify($senha, $usuario['senha'])) {
+            $_SESSION['usuario_id'] = $usuario['id'];
+            $_SESSION['usuario_nome'] = $usuario['nome'];
+            $_SESSION['usuario_role'] = $usuario['role'];
+            Router::redirect('/dashboard');
+            return;
         }
+
+        $_SESSION['flash_error'] = 'E-mail ou senha inválidos.';
+        Router::redirect('/login');
     }
 
     /**
@@ -67,9 +61,9 @@ class UsuarioController
                 session_name(), 
                 '', 
                 time() - 42000, 
-                $cookieParams["path"],
-                $cookieParams["domain"],
-                $cookieParams["secure"],
+                $cookieParams["path"], 
+                $cookieParams["domain"], 
+                $cookieParams["secure"], 
                 $cookieParams["httponly"]
             );
         }
@@ -131,17 +125,17 @@ class UsuarioController
                 );
 
                 if ($emailEnviado) {
-                    $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Link de redefinição enviado para seu e-mail.'];
+                    $_SESSION['flash_success'] = 'Link de redefinição enviado para seu e-mail.';
                 } else {
-                    $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao enviar e-mail. Tente novamente.'];
+                    $_SESSION['flash_error'] = 'Erro ao enviar e-mail. Tente novamente.';
                 }
 
             } catch (\Exception $e) {
-                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao enviar e-mail. Tente novamente.'];
+                $_SESSION['flash_error'] = 'Erro no envio do e-mail: ' . $e->getMessage();
             }
         } else {
             // Sempre mostra a mesma mensagem (segurança)
-            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Se o e-mail estiver cadastrado, você receberá as instruções.'];
+            $_SESSION['flash_success'] = 'Se o e-mail estiver cadastrado, você receberá as instruções.';
         }
 
         Router::redirect('/login');
@@ -157,14 +151,14 @@ class UsuarioController
         $email = $queryParams['email'] ?? '';
 
         if (empty($token) || empty($email)) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Link inválido ou expirado.'];
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
             Router::redirect('/login');
             return;
         }
 
         // Verifica se o token é válido e não expirado
         $pdo = \getDbConnection();
-        $stmt = $pdo->prepare(" 
+        $stmt = $pdo->prepare("
             SELECT token FROM password_resets 
             WHERE email = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
         ");
@@ -172,7 +166,7 @@ class UsuarioController
         $resetData = $stmt->fetch();
 
         if (!$resetData || !password_verify($token, $resetData['token'])) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Link inválido ou expirado.'];
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
             Router::redirect('/login');
             return;
         }
@@ -198,19 +192,19 @@ class UsuarioController
         $confirmarSenha = $dados['confirmar_senha'] ?? '';
 
         if (empty($token) || empty($email) || empty($novaSenha)) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Dados incompletos.'];
+            $_SESSION['flash_error'] = 'Dados incompletos.';
             Router::redirect('/login');
             return;
         }
 
         if ($novaSenha !== $confirmarSenha) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'As senhas não coincidem.'];
+            $_SESSION['flash_error'] = 'As senhas não coincidem.';
             Router::redirect("/redefinir-senha?token={$token}&email=" . urlencode($email));
             return;
         }
 
         if (strlen($novaSenha) < 6) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'A senha deve ter pelo menos 6 caracteres.'];
+            $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
             Router::redirect("/redefinir-senha?token={$token}&email=" . urlencode($email));
             return;
         }
@@ -218,7 +212,7 @@ class UsuarioController
         $pdo = \getDbConnection();
 
         // Verifica o token novamente
-        $stmt = $pdo->prepare(" 
+        $stmt = $pdo->prepare("
             SELECT token FROM password_resets 
             WHERE email = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
         ");
@@ -226,7 +220,7 @@ class UsuarioController
         $resetData = $stmt->fetch();
 
         if (!$resetData || !password_verify($token, $resetData['token'])) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Link inválido ou expirado.'];
+            $_SESSION['flash_error'] = 'Link inválido ou expirado.';
             Router::redirect('/login');
             return;
         }
@@ -240,7 +234,7 @@ class UsuarioController
         $stmt = $pdo->prepare("DELETE FROM password_resets WHERE email = ?");
         $stmt->execute([$email]);
 
-        $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Senha redefinida com sucesso! Faça login com sua nova senha.'];
+        $_SESSION['flash_success'] = 'Senha redefinida com sucesso! Faça login com sua nova senha.';
         Router::redirect('/login');
     }
 
@@ -249,44 +243,18 @@ class UsuarioController
      */
     public function listar($params = [])
     {
-        try {
-            $pdo = \getDbConnection();
-            
-            // SQL DIRETO - sem DatabaseHelper
-            $stmt = $pdo->prepare("SELECT id, nome, email, role, created_at FROM usuarios ORDER BY nome");
-            $stmt->execute();
-            $usuarios = $stmt->fetchAll();
+        $pdo = \getDbConnection();
+        $stmt = $pdo->prepare("SELECT id, nome, email, role, created_at FROM usuarios ORDER BY nome");
+        $stmt->execute();
+        $usuarios = $stmt->fetchAll();
 
-            $tituloPagina = "Gerenciar Usuários";
-            $paginaConteudo = __DIR__ . '/../View/usuarios/lista.php';
-            
-            ob_start();
-            require __DIR__ . '/../View/layout/main.php';
-            $view = ob_get_clean();
-            echo $view;
-            
-        } catch (\Exception $e) {
-            echo "<!DOCTYPE html>
-            <html>
-            <head>
-                <title>Usuários - Erro</title>
-                <meta charset='UTF-8'>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }
-                    .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; }
-                    .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }
-                </style>
-            </head>
-            <body>
-                <h1>Gerenciar Usuários</h1>
-                <div class='error'>
-                    <h3>Erro ao carregar usuários</h3>
-                    <p>Ocorreu um erro ao acessar os dados dos usuários.</p>
-                </div>
-                <a href='/dashboard' class='btn'>Voltar ao Dashboard</a>
-            </body>
-            </html>";
-        }
+        $tituloPagina = "Gerenciar Usuários";
+        $paginaConteudo = __DIR__ . '/../View/usuarios/lista.php';
+        
+        ob_start();
+        require __DIR__ . '/../View/layout/main.php';
+        $view = ob_get_clean();
+        echo $view;
     }
 
     /**
@@ -309,43 +277,53 @@ class UsuarioController
     public function criar($params = [])
     {
         $dados = Router::getPostData();
-        
-        // Validações básicas
+
+        // Validações
         if (empty($dados['nome']) || empty($dados['email']) || empty($dados['senha'])) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Nome, email e senha são obrigatórios.'];
+            $_SESSION['flash_error'] = 'Todos os campos são obrigatórios.';
             Router::redirect('/usuarios/novo');
             return;
         }
 
-        $pdo = \getDbConnection();
-        
-        try {
-            $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
-            
-            // SQL DIRETO - sem complicações
-            $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha, role) VALUES (?, ?, ?, 'admin')");
-            $result = $stmt->execute([
-                $dados['nome'], 
-                $dados['email'], 
-                $senhaHash
-            ]);
-
-            if ($result) {
-                $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Usuário criado com sucesso!'];
-                Router::redirect('/usuarios');
-            } else {
-                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao criar usuário.'];
-                Router::redirect('/usuarios/novo');
-            }
-            
-        } catch (\PDOException $e) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro no banco de dados. Tente novamente.'];
+        if (!validarEmail($dados['email'])) {
+            $_SESSION['flash_error'] = 'E-mail inválido.';
             Router::redirect('/usuarios/novo');
-        } catch (\Exception $e) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro interno. Tente novamente.'];
-            Router::redirect('/usuarios/novo');
+            return;
         }
-    }    /**
+
+        if (strlen($dados['senha']) < 6) {
+            $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        $role = in_array($dados['role'] ?? '', ['admin', 'user']) ? $dados['role'] : 'user';
+        $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
+
+        $pdo = \getDbConnection();
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO usuarios (nome, email, senha, role) 
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role]);
+            
+            $_SESSION['flash_success'] = 'Usuário criado com sucesso!';
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) { // Erro de violação de chave única
+                $_SESSION['flash_error'] = 'E-mail já cadastrado.';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao criar usuário.';
+            }
+            Router::redirect('/usuarios/novo');
+            return;
+        }
+
+        Router::redirect('/usuarios');
+    }
+
+    /**
      * Exibe formulário de edição de usuário
      */
     public function exibirFormularioEdicao($params = [])
@@ -358,7 +336,7 @@ class UsuarioController
         $usuario = $stmt->fetch();
 
         if (!$usuario) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Usuário não encontrado.'];
+            $_SESSION['flash_error'] = 'Usuário não encontrado.';
             Router::redirect('/usuarios');
             return;
         }
@@ -382,13 +360,13 @@ class UsuarioController
 
         // Validações
         if (empty($dados['nome']) || empty($dados['email'])) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Nome e e-mail são obrigatórios.'];
+            $_SESSION['flash_error'] = 'Nome e e-mail são obrigatórios.';
             Router::redirect("/usuarios/{$id}/editar");
             return;
         }
 
         if (!validarEmail($dados['email'])) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'E-mail inválido.'];
+            $_SESSION['flash_error'] = 'E-mail inválido.';
             Router::redirect("/usuarios/{$id}/editar");
             return;
         }
@@ -400,30 +378,30 @@ class UsuarioController
             // Se uma nova senha foi fornecida
             if (!empty($dados['senha'])) {
                 if (strlen($dados['senha']) < 6) {
-                    $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'A senha deve ter pelo menos 6 caracteres.'];
+                    $_SESSION['flash_error'] = 'A senha deve ter pelo menos 6 caracteres.';
                     Router::redirect("/usuarios/{$id}/editar");
                     return;
                 }
                 
                 $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare(" 
+                $stmt = $pdo->prepare("
                     UPDATE usuarios SET nome = ?, email = ?, senha = ?, role = ? WHERE id = ?
                 ");
                 $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role, $id]);
             } else {
                 // Atualiza sem alterar a senha
-                $stmt = $pdo->prepare(" 
+                $stmt = $pdo->prepare("
                     UPDATE usuarios SET nome = ?, email = ?, role = ? WHERE id = ?
                 ");
                 $stmt->execute([$dados['nome'], $dados['email'], $role, $id]);
             }
             
-            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Usuário atualizado com sucesso!'];
+            $_SESSION['flash_success'] = 'Usuário atualizado com sucesso!';
         } catch (\PDOException $e) {
             if ($e->getCode() == 23000) {
-                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'E-mail já cadastrado para outro usuário.'];
+                $_SESSION['flash_error'] = 'E-mail já cadastrado para outro usuário.';
             } else {
-                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro ao atualizar usuário. Tente novamente.'];
+                $_SESSION['flash_error'] = 'Erro ao atualizar usuário.';
             }
             Router::redirect("/usuarios/{$id}/editar");
             return;
@@ -441,7 +419,7 @@ class UsuarioController
 
         // Impede que o usuário se auto-exclua
         if ($id == $_SESSION['usuario_id']) {
-            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Você não pode excluir seu próprio usuário.'];
+            $_SESSION['flash_error'] = 'Você não pode excluir seu próprio usuário.';
             Router::redirect('/usuarios');
             return;
         }
@@ -450,7 +428,7 @@ class UsuarioController
         $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
         $stmt->execute([$id]);
 
-        $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Usuário excluído com sucesso!'];
+        $_SESSION['flash_success'] = 'Usuário excluído com sucesso!';
         Router::redirect('/usuarios');
     }
 
@@ -459,6 +437,9 @@ class UsuarioController
      */
     public function downloadProposta($params = [])
     {
+        // Debug
+        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - MÉTODO DOWNLOAD CHAMADO - Params: " . json_encode($params) . "\n", FILE_APPEND);
+        
         $nomeArquivo = $params['nome_arquivo'] ?? '';
         
         if (empty($nomeArquivo)) {

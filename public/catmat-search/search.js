@@ -4,7 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // I. Configuração do Cliente Supabase
     const supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA0NjI5MDQsImV4cCI6MjAzNjAzODkwNH0.pB_CYcdoJJz3GW7Ojh6Ms1TgTh4xs4-_G1hOMgOLQoM';
+    
+    // Verificar se o Supabase está disponível
+    if (typeof window.supabase === 'undefined') {
+        console.error('Supabase client não carregado. Verifique se o script está incluído na página.');
+        return;
+    }
+    
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // II. Seleção dos Elementos do DOM

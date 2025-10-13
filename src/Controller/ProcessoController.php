@@ -6,68 +6,78 @@ use Joabe\Buscaprecos\Core\Router;
 
 class ProcessoController
 {
-        public function listar($params = [])
+    public function listar($params = [])
     {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("SELECT * FROM processos ORDER BY data_criacao DESC");
-        $processos = $stmt->fetchAll();
+        try {
+            $pdo = \getDbConnection();
+            
+            // SQL DIRETO - sem DatabaseHelper
+            $stmt = $pdo->query("SELECT id, numero_processo, orgao, status, created_at, valor_estimado FROM processos ORDER BY created_at DESC");
+            $processos = $stmt->fetchAll();
 
-        // Prepara as variáveis para o layout principal
-        $tituloPagina = "Lista de Processos";
-        
-        // --- A CORREÇÃO ESTÁ AQUI ---
-        // Garante que estamos apontando para a view correta da lista de PROCESSOS.
-        $paginaConteudo = __DIR__ . '/../View/processos/lista.php';
+            $tituloPagina = "Lista de Processos";
+            $paginaConteudo = __DIR__ . '/../View/processos/lista.php';
 
-        // Renderiza o layout principal, que por sua vez incluirá a nossa lista
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
+            ob_start();
+            require __DIR__ . '/../View/layout/main.php';
+            $view = ob_get_clean();
 
-        echo $view;
+            echo $view;
+            
+        } catch (\Exception $e) {
+            error_log("Erro ao listar processos: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro ao carregar os processos. Tente novamente.'];
+            Router::redirect('/dashboard');
+        }
     }
 
-    // --- CORREÇÃO APLICADA AQUI ---
-        public function exibirFormulario($params = [])
+    public function exibirFormulario($params = [])
     {
-        // Prepara as variáveis para o layout principal
         $tituloPagina = "Novo Processo";
-        // Define o arquivo de conteúdo que o layout principal vai incluir
         $paginaConteudo = __DIR__ . '/../View/processos/formulario.php';
 
-        // Renderiza o layout principal
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
 
         echo $view;
     }
-    // --- FIM DA CORREÇÃO ---
 
     public function criar($params = [])
-{
-    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+    {
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
-    $sql = "INSERT INTO processos (numero_processo, nome_processo, tipo_contratacao, status, agente_responsavel, agente_matricula, uasg, regiao) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-    $pdo = \getDbConnection();
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([
-        $dados['numero_processo'],
-        $dados['nome_processo'],
-        $dados['tipo_contratacao'],
-        $dados['status'],
-        $dados['agente_responsavel'], 
-        $dados['agente_matricula'] ?? null, // Novo campo
-        $dados['uasg'],          
-        $dados['regiao']
-    ]);
-
-    \Joabe\Buscaprecos\Core\Router::redirect('/processos'); return;
-}
-
+        try {
+            $pdo = \getDbConnection();
+            
+            // SQL DIRETO - campos fixos
+            $stmt = $pdo->prepare("
+                INSERT INTO processos (numero_processo, nome_processo, orgao, status, valor_estimado, tipo_contratacao, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            
+            $stmt->execute([
+                $dados['numero_processo'] ?? '',
+                $dados['nome_processo'] ?? $dados['nome'] ?? '',
+                $dados['orgao'] ?? '',
+                $dados['status'] ?? 'Rascunho',
+                $dados['valor_estimado'] ?? 0,
+                $dados['tipo_contratacao'] ?? ''
+            ]);
+            
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Processo criado com sucesso!'];
+            \Joabe\Buscaprecos\Core\Router::redirect('/processos');
+            
+        } catch (\Exception $e) {
+            error_log("Erro ao criar processo: " . $e->getMessage());
+            $_SESSION['flash'] = [
+                'tipo' => 'danger',
+                'mensagem' => 'Ocorreu um erro ao criar o processo. Tente novamente.',
+                'dados_formulario' => $dados
+            ];
+            \Joabe\Buscaprecos\Core\Router::redirect('/processos/novo');
+        }
+    }
 
     public function exibirFormularioEdicao($params = [])
     {
@@ -78,16 +88,14 @@ class ProcessoController
         $processo = $stmt->fetch();
 
         if (!$processo) {
-            $_SESSION['flash_error'] = 'Processo não encontrado.';
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Processo não encontrado.'];
             Router::redirect('/processos');
             return;
         }
         
-        // Prepara as variáveis para o layout principal
         $tituloPagina = "Editar Processo";
         $paginaConteudo = __DIR__ . '/../View/processos/formulario_edicao.php';
 
-        // Renderiza o layout principal
         ob_start();
         require __DIR__ . '/../View/layout/main.php';
         $view = ob_get_clean();
@@ -95,50 +103,67 @@ class ProcessoController
         echo $view;
     }
 
-    // NOVO MÉTODO: Salva as alterações no banco de dados
     public function atualizar($params = [])
-{
-    $id = $params['id'] ?? 0;
-    $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+    {
+        $id = $params['id'] ?? 0;
+        $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+        $redirectUrl = "/processos/$id/editar";
 
-    $sql = "UPDATE processos SET 
-                numero_processo = ?, nome_processo = ?, tipo_contratacao = ?, status = ?, 
-                agente_responsavel = ?, agente_matricula = ?, uasg = ?, regiao = ? 
-            WHERE id = ?";
+        try {
+            $pdo = \getDbConnection();
+            
+            // SQL DIRETO - atualização simples
+            $stmt = $pdo->prepare("
+                UPDATE processos 
+                SET numero_processo = ?, nome_processo = ?, orgao = ?, status = ?, valor_estimado = ?, tipo_contratacao = ?
+                WHERE id = ?
+            ");
+            
+            $stmt->execute([
+                $dados['numero_processo'] ?? '',
+                $dados['nome_processo'] ?? $dados['nome'] ?? '',
+                $dados['orgao'] ?? '',
+                $dados['status'] ?? '',
+                $dados['valor_estimado'] ?? 0,
+                $dados['tipo_contratacao'] ?? '',
+                $id
+            ]);
+            
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Processo atualizado com sucesso!'];
+            \Joabe\Buscaprecos\Core\Router::redirect('/processos');
+            
+        } catch (\Exception $e) {
+            error_log("Erro ao atualizar processo: " . $e->getMessage());
+            $_SESSION['flash'] = [
+                'tipo' => 'danger',
+                'mensagem' => 'Ocorreu um erro ao atualizar o processo. Tente novamente.',
+                'dados_formulario' => $dados
+            ];
+            \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);
+        }
+    }
 
-    $pdo = \getDbConnection();
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([
-        $dados['numero_processo'],
-        $dados['nome_processo'],
-        $dados['tipo_contratacao'],
-        $dados['status'],
-        $dados['agente_responsavel'], 
-        $dados['agente_matricula'] ?? null, // Novo campo
-        $dados['uasg'],
-        $dados['regiao'],
-        $id
-    ]);
-
-    $_SESSION['flash_success'] = 'Processo atualizado com sucesso.';
-    Router::redirect('/processos');
-}
-
-
-        // NOVO MÉTODO: Apaga um processo do banco de dados
     public function excluir($params = [])
     {
         $id = $params['id'] ?? 0;
 
-        $sql = "DELETE FROM processos WHERE id = ?";
+        try {
+            $pdo = \getDbConnection();
+            $stmt = $pdo->prepare("DELETE FROM processos WHERE id = ?");
+            $stmt->execute([$id]);
 
-        $pdo = \getDbConnection();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id]);
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Processo excluído com sucesso.'];
+            
+        } catch (\PDOException $e) {
+            error_log("Erro ao excluir processo: " . $e->getMessage());
 
-        // Redireciona para a lista de processos após excluir
-        $_SESSION['flash_success'] = 'Processo excluído com sucesso.';
+            if ($e->getCode() == 23000) { // Foreign key constraint
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Não é possível excluir o processo, pois ele possui itens ou cotações associadas.'];
+            } else {
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro inesperado ao excluir o processo.'];
+            }
+        }
+
         Router::redirect('/processos');
     }
 }

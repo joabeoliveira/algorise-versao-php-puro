@@ -39,7 +39,10 @@ class CotacaoRapidaController
     $quantidades = $dados['quantidade'] ?? [];
 
     if (empty($catmats) || empty($catmats[0])) {
-        return $response->withJson(['erro' => 'Pelo menos um código CATMAT/CATSER é obrigatório.'], 400);
+        header('Content-Type: application/json');
+        http_response_code(400);
+        echo json_encode(['erro' => 'Pelo menos um código CATMAT/CATSER é obrigatório.']);
+        exit;
     }
 
     $resultadosPorItem = [];
@@ -71,11 +74,15 @@ class CotacaoRapidaController
         ];
     }
 
+    header('Content-Type: application/json');
+    
     if (empty($resultadosPorItem)) {
-        return $response->withJson(['mensagem' => 'Nenhum preço encontrado para os CATMATs informados.']);
+        echo json_encode(['mensagem' => 'Nenhum preço encontrado para os CATMATs informados.']);
+        exit;
     }
     
-    return $response->withJson(['resultados_por_item' => $resultadosPorItem]);
+    echo json_encode(['resultados_por_item' => $resultadosPorItem]);
+    exit;
 }
 
     /**
@@ -148,7 +155,10 @@ class CotacaoRapidaController
         $itens = $dados['itens'] ?? [];
 
         if (empty($titulo) || empty($itens)) {
-            return $response->withJson(['erro' => 'Dados insuficientes para salvar.'], 400);
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode(['erro' => 'Dados insuficientes para salvar.']);
+            exit;
         }
 
         $pdo = \getDbConnection();
@@ -196,12 +206,18 @@ class CotacaoRapidaController
 
             $pdo->commit();
             
-            return $response->withJson(['status' => 'sucesso', 'nota_tecnica_id' => $notaId]);
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'sucesso', 'nota_tecnica_id' => $notaId]);
+            exit;
 
         } catch (\Exception $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             error_log("Erro ao salvar cotação rápida: " . $e->getMessage());
-            return $response->withJson(['erro' => 'Erro Interno no Servidor: ' . $e->getMessage()], 500);
+            
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode(['erro' => 'Erro Interno no Servidor: ' . $e->getMessage()]);
+            exit;
         }
     }
 
@@ -229,14 +245,12 @@ class CotacaoRapidaController
         // --- FIM DA ALTERAÇÃO ---
 
         $writer = new Xlsx($spreadsheet);
-        ob_start();
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="modelo_importacao_cotacao_rapida.xlsx"');
+        
         $writer->save('php://output');
-        $fileContent = ob_get_clean();
-        $response->getBody()->write($fileContent);
-
-        return $response
-            ->withHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            ->withHeader('Content-Disposition', 'attachment;filename="modelo_importacao_cotacao_rapida.xlsx"');
+        exit;
     }
 
 }

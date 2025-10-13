@@ -1,0 +1,94 @@
+# Google App Engine configuration for Algorise PHP Application
+runtime: php82
+env: standard
+
+# Automatic scaling configuration
+automatic_scaling:
+  min_instances: 1
+  max_instances: 5
+  min_idle_instances: 1
+  max_idle_instances: 2
+  min_pending_latency: automatic
+  max_pending_latency: 30ms
+  target_cpu_utilization: 0.6
+
+# Environment variables for production
+env_variables:
+  # Application settings
+  APP_ENV: production
+  APP_DEBUG: false
+  APP_NAME: "Algorise"
+  APP_TIMEZONE: "America/Sao_Paulo"
+  
+  # Database settings (Cloud SQL)
+  # IMPORTANT: Replace with your actual Cloud SQL instance details
+  DB_DATABASE: algorise
+  DB_USER: algorise-user
+  DB_PASSWORD: "114211Jo@"
+  
+  # Cloud SQL connection (replace with your connection name)
+  # Format: project-id:region:instance-name
+  CLOUD_SQL_CONNECTION_NAME: "algorise-producao:southamerica-east1:algorise-db"
+  DB_SOCKET_DIR: "/cloudsql"
+  
+  # Supabase configuration
+  # IMPORTANT: Replace with your production Supabase credentials
+  SUPABASE_URL: "https://abuowxogoiqzbmnvszys.supabase.co"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA0NjI5MDQsImV4cCI6MjAzNjAzODkwNH0.pB_CYcdoJJz3GW7Ojh6Ms1TgTh4xs4-_G1hOMgOLQoM"
+  
+  # Storage configuration
+  STORAGE_BUCKET: "algorise-storage-algorise-producao"
+
+  # Email configuration
+  MAIL_HOST: "smtp.gmail.com"
+  MAIL_PORT: "587"
+  MAIL_ENCRYPTION: "tls"
+  MAIL_FROM_NAME: "Algorise Sistema"
+  MAIL_USERNAME: "joabeantonio@gmail.com"
+  MAIL_PASSWORD: "tthvegivjclbssdz"
+
+# URL handlers
+handlers:
+  # Static files
+  - url: /css
+    static_dir: public/css
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=86400"
+    
+  - url: /js
+    static_dir: public/js
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=86400"
+    
+  - url: /img
+    static_dir: public/img
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=86400"
+    
+  - url: /uploads
+    static_dir: public/uploads
+    secure: always
+  
+  # All other requests go to index.php
+  - url: /.*
+    script: public/index.php
+    secure: always
+
+# Resources allocation
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+# VPC connector (optional - for private DB access)
+# vpc_access_connector:
+#   name: projects/your-project-id/locations/us-central1/connectors/algorise-connector
+
+# Beta settings for PHP 8.2
+beta_settings:
+  cloud_sql_instances: "algorise-producao:southamerica-east1:algorise-db"
+
+# Skip files moved to .gcloudignore file

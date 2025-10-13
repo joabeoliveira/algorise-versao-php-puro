@@ -16,7 +16,7 @@ class ConfiguracaoController
     {
         // Verificar se o usuário é admin
         if (!isset($_SESSION['usuario_role']) || $_SESSION['usuario_role'] !== 'admin') {
-            $_SESSION['flash_error'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
+            $_SESSION['flash'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
             Router::redirect('/dashboard');
             return;
         }
@@ -116,6 +116,18 @@ class ConfiguracaoController
 
             Router::json(['success' => true, 'message' => 'Configurações atualizadas com sucesso!']);
 
+        } catch (\PDOException $e) {
+            if (isset($pdo)) {
+                $pdo->rollBack();
+            }
+            
+            \logarEvento('error', 'Erro de banco de dados ao atualizar configurações: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            
+            Router::json([
+                'success' => false, 
+                'message' => 'Erro de banco de dados. Por favor, contate o suporte.'
+            ], 500);
+
         } catch (\Exception $e) {
             if (isset($pdo)) {
                 $pdo->rollBack();
@@ -180,7 +192,7 @@ class ConfiguracaoController
     {
         // Verificar se o usuário é admin
         if (!isset($_SESSION['usuario_role']) || $_SESSION['usuario_role'] !== 'admin') {
-            $_SESSION['flash_error'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
+            $_SESSION['flash'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
             Router::redirect('/dashboard');
             return;
         }
@@ -283,6 +295,18 @@ class ConfiguracaoController
 
             Router::json(['success' => true, 'message' => 'Configurações de email atualizadas com sucesso!']);
 
+        } catch (\PDOException $e) {
+            if (isset($pdo)) {
+                $pdo->rollBack();
+            }
+            
+            \logarEvento('error', 'Erro de banco de dados ao atualizar configurações de email: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            
+            Router::json([
+                'success' => false, 
+                'message' => 'Erro de banco de dados. Por favor, contate o suporte.'
+            ], 500);
+
         } catch (\Exception $e) {
             if (isset($pdo)) {
                 $pdo->rollBack();
@@ -373,6 +397,7 @@ class ConfiguracaoController
             Router::json(['success' => true, 'message' => 'Email de teste enviado com sucesso!']);
 
         } catch (Exception $e) {
+            error_log("Erro no teste de email: " . $e->getMessage());
             \logarEvento('error', 'Erro no teste de email: ' . $e->getMessage());
             Router::json(['success' => false, 'message' => 'Erro ao enviar email: ' . $e->getMessage()]);
         }
@@ -442,7 +467,7 @@ class ConfiguracaoController
     {
         // Verificar se o usuário é admin
         if (!isset($_SESSION['usuario_role']) || $_SESSION['usuario_role'] !== 'admin') {
-            $_SESSION['flash_error'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
+            $_SESSION['flash'] = 'Acesso negado. Apenas administradores podem acessar as configurações.';
             Router::redirect('/dashboard');
             return;
         }
@@ -549,11 +574,25 @@ class ConfiguracaoController
 
             Router::json(['success' => true, 'message' => 'Configurações de interface atualizadas com sucesso!']);
 
+        } catch (\PDOException $e) {
+            if (isset($pdo)) {
+                $pdo->rollBack();
+            }
+            
+            error_log("Erro de banco de dados ao atualizar configurações de interface: " . $e->getMessage());
+            \logarEvento('error', 'Erro de banco de dados ao atualizar configurações de interface: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            
+            Router::json([
+                'success' => false, 
+                'message' => 'Erro de banco de dados. Por favor, contate o suporte.'
+            ], 500);
+
         } catch (\Exception $e) {
             if (isset($pdo)) {
                 $pdo->rollBack();
             }
             
+            error_log("Erro ao atualizar configurações de interface: " . $e->getMessage());
             \logarEvento('error', 'Erro ao atualizar configurações de interface: ' . $e->getMessage());
             
             Router::json([
@@ -657,7 +696,13 @@ class ConfiguracaoController
                 'path' => $caminhoRelativo
             ]);
 
+        } catch (\PDOException $e) {
+            error_log("Erro de banco de dados no upload: " . $e->getMessage());
+            \logarEvento('error', 'Erro de banco de dados no upload: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            Router::json(['success' => false, 'message' => 'Erro de banco de dados ao salvar a configuração do arquivo.']);
+
         } catch (\Exception $e) {
+            error_log("Erro no upload: " . $e->getMessage());
             \logarEvento('error', 'Erro no upload: ' . $e->getMessage());
             Router::json(['success' => false, 'message' => 'Erro interno no upload.']);
         }
@@ -725,7 +770,13 @@ class ConfiguracaoController
             $resultado = $stmt->fetch();
             
             return $resultado ? $resultado['valor'] : $valorPadrao;
+        } catch (\PDOException $e) {
+            error_log("Erro de banco de dados ao buscar configuração: " . $e->getMessage());
+            \logarEvento('error', 'Erro de banco de dados ao buscar configuração: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            return $valorPadrao;
+
         } catch (\Exception $e) {
+            error_log("Erro ao buscar configuração: " . $e->getMessage());
             \logarEvento('error', 'Erro ao buscar configuração: ' . $e->getMessage());
             return $valorPadrao;
         }
@@ -752,7 +803,13 @@ class ConfiguracaoController
             }
             
             return $config;
+        } catch (\PDOException $e) {
+            error_log("Erro de banco de dados ao buscar configurações por categoria: " . $e->getMessage());
+            \logarEvento('error', 'Erro de banco de dados ao buscar configurações por categoria: ' . $e->getMessage(), ['code' => $e->getCode()]);
+            return [];
+
         } catch (\Exception $e) {
+            error_log("Erro ao buscar configurações: " . $e->getMessage());
             \logarEvento('error', 'Erro ao buscar configurações: ' . $e->getMessage());
             return [];
         }

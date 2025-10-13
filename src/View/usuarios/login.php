@@ -10,6 +10,11 @@ if (session_status() === PHP_SESSION_NONE) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Algorise</title>
+    
+    <?php
+    // Headers removidos - CSP estava bloqueando tudo
+    ?>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -47,11 +52,11 @@ if (session_status() === PHP_SESSION_NONE) {
                 <p class="text-muted">Por favor, insira suas credenciais para continuar.</p>
             </div>
             
-            <?php if (isset($_SESSION['flash_error'])): ?>
+            <?php if (isset($_SESSION['flash'])): ?>
                 <div class="alert alert-danger" role="alert">
-                    <?= htmlspecialchars($_SESSION['flash_error']); ?>
+                    <?= htmlspecialchars($_SESSION['flash']); ?>
                 </div>
-                <?php unset($_SESSION['flash_error']); ?>
+                <?php unset($_SESSION['flash']); ?>
             <?php endif; ?>
 
             <form action="/login" method="POST">

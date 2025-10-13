@@ -33,20 +33,25 @@
                 <th>Razão Social</th>
                 <th>CNPJ</th>
                 <th>E-mail</th>
+                <th>Telefone</th>
                 <th>Ramo de Atividade</th>
+                <th>Status</th>
                 <th>Ações</th>
             </tr>
         </thead>
-        
         <tbody>
-            <?php foreach ($fornecedores as $fornecedor): ?>
+            <?php foreach ($fornecedores as $fornecedor) : ?>
                 <tr>
                     <td><?= htmlspecialchars($fornecedor['razao_social']) ?></td>
-                    
                     <td><?= htmlspecialchars(formatarString($fornecedor['cnpj'], '##.###.###/####-##')) ?></td>
                     <td><?= htmlspecialchars($fornecedor['email']) ?></td>
                     <td><?= htmlspecialchars(formatarString($fornecedor['telefone'], '(##) #####-####')) ?></td>
                     <td><?= htmlspecialchars($fornecedor['ramo_atividade']) ?></td>
+                    <td>
+                        <span class="badge <?= $fornecedor['ativo'] ? 'bg-success' : 'bg-danger' ?>">
+                            <?= $fornecedor['ativo'] ? 'Ativo' : 'Inativo' ?>
+                        </span>
+                    </td>
                     <td>
                         <a href="/fornecedores/<?= $fornecedor['id'] ?>/editar" class="btn btn-sm btn-primary" title="Editar Fornecedor">
                             <i class="bi bi-pencil-square"></i>
@@ -60,9 +65,9 @@
                 </tr>
             <?php endforeach; ?>
 
-            <?php if (empty($fornecedores)): ?>
+            <?php if (empty($fornecedores)) : ?>
                 <tr>
-                    <td colspan="6" class="text-center">Nenhum fornecedor encontrado.</td>
+                    <td colspan="7" class="text-center">Nenhum fornecedor encontrado.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

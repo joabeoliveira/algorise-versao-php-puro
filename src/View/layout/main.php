@@ -1,4 +1,8 @@
 <?php
+// Headers básicos de segurança (SEM CSP que está bloqueando tudo)
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: SAMEORIGIN");
+
 // Pega o caminho da URL atual para sabermos qual menu deve ficar ativo
 $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
 
@@ -482,13 +486,13 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
 
 
     <button id="open-chat">
-    <i class="fas fa-robot" style="font-size: 24px;"></i>
+    <i class="bi bi-robot" style="font-size: 24px;"></i>
 </button>
 
 <div id="chatbot-container" style="display: none;">
     <div id="chat-header">
         Chatbot Algorise
-        <button id="close-button"><i class="fas fa-times"></i></button>
+        <button id="close-button"><i class="bi bi-x-lg"></i></button>
     </div>
     <div id="chat-messages"></div>
     <div id="chat-input-container">

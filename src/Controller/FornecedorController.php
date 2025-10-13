@@ -12,17 +12,24 @@ class FornecedorController
      */
     public function listar($params = [])
     {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("SELECT * FROM fornecedores ORDER BY razao_social ASC");
-        $fornecedores = $stmt->fetchAll();
+        try {
+            $pdo = \getDbConnection();
+            $stmt = $pdo->query("SELECT id, razao_social, cnpj, email, telefone, ramo_atividade, ativo FROM fornecedores ORDER BY razao_social ASC");
+            $fornecedores = $stmt->fetchAll();
 
-        $tituloPagina = "Fornecedores Cadastrados";
-        $paginaConteudo = __DIR__ . '/../View/fornecedores/lista.php';
+            $tituloPagina = "Fornecedores Cadastrados";
+            $paginaConteudo = __DIR__ . '/../View/fornecedores/lista.php';
 
-        ob_start();
-        require __DIR__ . '/../View/layout/main.php';
-        $view = ob_get_clean();
-        echo $view;
+            ob_start();
+            require __DIR__ . '/../View/layout/main.php';
+            $view = ob_get_clean();
+            echo $view;
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao listar fornecedores: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro ao carregar os fornecedores.'];
+            Router::redirect('/dashboard');
+        }
     }
 
     /**
@@ -45,58 +52,47 @@ class FornecedorController
     public function criar($params = [])
     {
         $dados = Router::getPostData();
+        $redirectUrl = '/fornecedores/novo';
 
-        // Limpa CNPJ e telefone
-        $cnpjLimpo = preg_replace('/\D/', '', $dados['cnpj']);
-        $telefoneLimpo = preg_replace('/\D/', '', $dados['telefone'] ?? '');
-
-        // Validações
-        if (empty($dados['razao_social']) || empty($dados['cnpj']) || empty($dados['email'])) {
-            $_SESSION['flash_error'] = 'Razão social, CNPJ e e-mail são obrigatórios.';
-            Router::redirect('/fornecedores/novo');
-            return;
-        }
-
-        if (!validarCnpj($cnpjLimpo)) {
-            $_SESSION['flash_error'] = 'CNPJ inválido.';
-            Router::redirect('/fornecedores/novo');
-            return;
-        }
-
-        if (!validarEmail($dados['email'])) {
-            $_SESSION['flash_error'] = 'E-mail inválido.';
-            Router::redirect('/fornecedores/novo');
-            return;
-        }
-
-        $sql = "INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade) 
-                VALUES (?, ?, ?, ?, ?, ?)";
-        
-        $pdo = \getDbConnection();
-        
         try {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                $dados['razao_social'],
-                $cnpjLimpo,
-                $dados['email'],
-                $dados['endereco'] ?? null,
-                $telefoneLimpo ?: null,
-                $dados['ramo_atividade'] ?? null
-            ]);
-            
-            $_SESSION['flash_success'] = 'Fornecedor cadastrado com sucesso!';
-        } catch (\PDOException $e) {
-            if ($e->getCode() == 23000) { // Violação de chave única
-                $_SESSION['flash_error'] = 'CNPJ ou e-mail já cadastrado.';
-            } else {
-                $_SESSION['flash_error'] = 'Erro ao cadastrar fornecedor.';
-            }
-            Router::redirect('/fornecedores/novo');
-            return;
-        }
+            $pdo = \getDbConnection();
 
-        Router::redirect('/fornecedores');
+            if (empty($dados['razao_social'])) {
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Razão social é obrigatória.', 'dados_formulario' => $dados];
+                Router::redirect($redirectUrl);
+                return;
+            }
+
+            // SQL DIRETO - inserir fornecedor
+            $stmt = $pdo->prepare("
+                INSERT INTO fornecedores (razao_social, nome_fantasia, cnpj, email, endereco, telefone, responsavel_nome, responsavel_cargo) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $dados['razao_social'] ?? '',
+                $dados['nome_fantasia'] ?? '',
+                preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
+                $dados['email'] ?? '',
+                $dados['endereco'] ?? '',
+                preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
+                $dados['responsavel_nome'] ?? '',
+                $dados['responsavel_cargo'] ?? ''
+            ]);
+
+
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Fornecedor cadastrado com sucesso!'];
+            Router::redirect('/fornecedores');
+            
+        } catch (\PDOException $e) {
+            error_log("Erro ao criar fornecedor: " . $e->getMessage());
+            $mensagem = 'Ocorreu um erro ao cadastrar o fornecedor.';
+            if ($e->getCode() == 23000) { // Violação de chave única
+                $mensagem = 'CNPJ ou e-mail já cadastrado.';
+            }
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $mensagem, 'dados_formulario' => $dados];
+            Router::redirect($redirectUrl);
+        }
     }
 
     /**
@@ -112,7 +108,7 @@ class FornecedorController
         $fornecedor = $stmt->fetch();
 
         if (!$fornecedor) {
-            $_SESSION['flash_error'] = 'Fornecedor não encontrado.';
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Fornecedor não encontrado.'];
             Router::redirect('/fornecedores');
             return;
         }
@@ -133,65 +129,64 @@ class FornecedorController
     {
         $id = $params['id'] ?? 0;
         $dados = Router::getPostData();
+        $redirectUrl = "/fornecedores/{$id}/editar";
 
-        // Limpa CNPJ e telefone
-        $cnpjLimpo = preg_replace('/\D/', '', $dados['cnpj']);
-        $telefoneLimpo = preg_replace('/\D/', '', $dados['telefone'] ?? '');
-
-        // Validações
-        if (empty($dados['razao_social']) || empty($dados['cnpj']) || empty($dados['email'])) {
-            $_SESSION['flash_error'] = 'Razão social, CNPJ e e-mail são obrigatórios.';
-            Router::redirect("/fornecedores/{$id}/editar");
-            return;
-        }
-
-        if (!validarCnpj($cnpjLimpo)) {
-            $_SESSION['flash_error'] = 'CNPJ inválido.';
-            Router::redirect("/fornecedores/{$id}/editar");
-            return;
-        }
-
-        if (!validarEmail($dados['email'])) {
-            $_SESSION['flash_error'] = 'E-mail inválido.';
-            Router::redirect("/fornecedores/{$id}/editar");
-            return;
-        }
-
-        $sql = "UPDATE fornecedores SET 
-                    razao_social = ?, 
-                    cnpj = ?, 
-                    email = ?, 
-                    endereco = ?, 
-                    telefone = ?, 
-                    ramo_atividade = ? 
-                WHERE id = ?";
-        
-        $pdo = \getDbConnection();
-        
         try {
-            $stmt = $pdo->prepare($sql);
+            $pdo = \getDbConnection();
+
+            if (empty($dados['razao_social'])) {
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Razão social é obrigatória.', 'dados_formulario' => $dados];
+                Router::redirect($redirectUrl);
+                return;
+            }
+
+            // SQL DIRETO - atualizar fornecedor
+
+            $camposUpdate = [];
+            $valoresUpdate = [];
+
+            // Limpa e mapeia os dados recebidos
+            $mapeamentos = [
+                'razao_social' => $dados['razao_social'] ?? '',
+                'nome_fantasia' => $dados['nome_fantasia'] ?? '',
+                'cnpj' => preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
+                'email' => $dados['email'] ?? '',
+                'endereco' => $dados['endereco'] ?? '',
+                'telefone' => preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
+                'ramo_atividade' => $dados['ramo_atividade'] ?? '',
+                'ativo' => $dados['ativo'] ?? 0
+            ];
+
+            $stmt = $pdo->prepare("
+                UPDATE fornecedores 
+                SET razao_social = ?, nome_fantasia = ?, cnpj = ?, email = ?, endereco = ?, telefone = ?, responsavel_nome = ?, responsavel_cargo = ?
+                WHERE id = ?
+            ");
+            
             $stmt->execute([
-                $dados['razao_social'],
-                $cnpjLimpo,
-                $dados['email'],
-                $dados['endereco'] ?? null,
-                $telefoneLimpo ?: null,
-                $dados['ramo_atividade'] ?? null,
+                $dados['razao_social'] ?? '',
+                $dados['nome_fantasia'] ?? '',
+                preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
+                $dados['email'] ?? '',
+                $dados['endereco'] ?? '',
+                preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
+                $dados['responsavel_nome'] ?? '',
+                $dados['responsavel_cargo'] ?? '',
                 $id
             ]);
             
-            $_SESSION['flash_success'] = 'Fornecedor atualizado com sucesso!';
-        } catch (\PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $_SESSION['flash_error'] = 'CNPJ ou e-mail já cadastrado para outro fornecedor.';
-            } else {
-                $_SESSION['flash_error'] = 'Erro ao atualizar fornecedor.';
-            }
-            Router::redirect("/fornecedores/{$id}/editar");
-            return;
-        }
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Fornecedor atualizado com sucesso!'];
+            Router::redirect('/fornecedores');
 
-        Router::redirect('/fornecedores');
+        } catch (\PDOException $e) {
+            error_log("Erro ao atualizar fornecedor: " . $e->getMessage());
+            $mensagem = 'Ocorreu um erro ao atualizar o fornecedor.';
+            if ($e->getCode() == 23000) {
+                $mensagem = 'CNPJ ou e-mail já cadastrado para outro fornecedor.';
+            }
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $mensagem, 'dados_formulario' => $dados];
+            Router::redirect($redirectUrl);
+        }
     }
 
     /**
@@ -201,24 +196,31 @@ class FornecedorController
     {
         $id = $params['id'] ?? 0;
 
-        $pdo = \getDbConnection();
-        
-        // Verifica se o fornecedor tem preços vinculados
-        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM precos WHERE fornecedor_id = ?");
-        $stmt->execute([$id]);
-        $resultado = $stmt->fetch();
+        try {
+            $pdo = \getDbConnection();
+            
+            // Verifica se o fornecedor tem preços vinculados
+            $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM precos WHERE fornecedor_id = ?");
+            $stmt->execute([$id]);
+            $resultado = $stmt->fetch();
 
-        if ($resultado['total'] > 0) {
-            $_SESSION['flash_error'] = 'Não é possível excluir: fornecedor possui preços cadastrados.';
-            Router::redirect('/fornecedores');
-            return;
+            if ($resultado['total'] > 0) {
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Não é possível excluir: fornecedor possui preços cadastrados.'];
+                Router::redirect('/fornecedores');
+                return;
+            }
+
+            // Exclui o fornecedor
+            $stmt = $pdo->prepare("DELETE FROM fornecedores WHERE id = ?");
+            $stmt->execute([$id]);
+
+            $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Fornecedor excluído com sucesso!'];
+
+        } catch (\PDOException $e) {
+            error_log("Erro ao excluir fornecedor: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro ao excluir o fornecedor.'];
         }
 
-        // Exclui o fornecedor
-        $stmt = $pdo->prepare("DELETE FROM fornecedores WHERE id = ?");
-        $stmt->execute([$id]);
-
-        $_SESSION['flash_success'] = 'Fornecedor excluído com sucesso!';
         Router::redirect('/fornecedores');
     }
 
@@ -242,7 +244,7 @@ class FornecedorController
     public function processarImportacao($params = [])
     {
         if (!isset($_FILES['planilha']) || $_FILES['planilha']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['flash_error'] = 'Erro no upload do arquivo.';
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro no upload do arquivo.'];
             Router::redirect('/fornecedores/importar');
             return;
         }
@@ -251,7 +253,7 @@ class FornecedorController
         $uploadResult = Spreadsheet::processUpload($_FILES['planilha'], ['csv', 'xlsx', 'xls']);
         
         if (!$uploadResult['success']) {
-            $_SESSION['flash_error'] = implode(', ', $uploadResult['errors']);
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => implode(', ', $uploadResult['errors'])];
             Router::redirect('/fornecedores/importar');
             return;
         }
@@ -274,7 +276,7 @@ class FornecedorController
             
             foreach ($headersObrigatorios as $header) {
                 if (!in_array(strtolower($header), $headersEncontrados)) {
-                    $_SESSION['flash_error'] = "Coluna obrigatória não encontrada: {$header}";
+                    $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => "Coluna obrigatória não encontrada: {$header}"];
                     Router::redirect('/fornecedores/importar');
                     return;
                 }
@@ -393,13 +395,14 @@ class FornecedorController
             }
 
             if ($erros > 0 && $sucessos === 0) {
-                $_SESSION['flash_error'] = $mensagem;
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => $mensagem];
             } else {
-                $_SESSION['flash_success'] = $mensagem;
+                $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => $mensagem];
             }
 
         } catch (\Exception $e) {
-            $_SESSION['flash_error'] = 'Erro ao processar planilha: ' . $e->getMessage();
+            error_log("Erro ao processar planilha: " . $e->getMessage());
+            $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Ocorreu um erro ao processar a planilha.'];
         }
 
         Router::redirect('/fornecedores');
@@ -449,22 +452,27 @@ class FornecedorController
      */
     public function listarJson($params = [])
     {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("
-            SELECT id, razao_social, cnpj, email, telefone, ramo_atividade 
-            FROM fornecedores 
-            ORDER BY razao_social ASC
-        ");
-        $fornecedores = $stmt->fetchAll();
+        try {
+            $pdo = \getDbConnection();
+            $stmt = $pdo->query("
+                SELECT id, razao_social, cnpj, email, telefone, ramo_atividade 
+                FROM fornecedores 
+                ORDER BY razao_social ASC
+            ");
+            $fornecedores = $stmt->fetchAll();
 
-        // Formata CNPJ para exibição
-        foreach ($fornecedores as &$fornecedor) {
-            $fornecedor['cnpj_formatado'] = formatarString($fornecedor['cnpj'], '##.###.###/####-##');
-            $fornecedor['telefone_formatado'] = $fornecedor['telefone'] ? 
-                formatarString($fornecedor['telefone'], '(##) #####-####') : '';
+            foreach ($fornecedores as &$fornecedor) {
+                $fornecedor['cnpj_formatado'] = formatarString($fornecedor['cnpj'], '##.###.###/####-##');
+                $fornecedor['telefone_formatado'] = $fornecedor['telefone'] ? 
+                    formatarString($fornecedor['telefone'], '(##) #####-####') : '';
+            }
+
+            Router::json($fornecedores);
+
+        } catch (\PDOException $e) {
+            error_log("Erro na API ao listar fornecedores: " . $e->getMessage());
+            Router::json(['error' => 'Erro ao buscar dados.'], 500);
         }
-
-        Router::json($fornecedores);
     }
 
     /**
@@ -472,16 +480,22 @@ class FornecedorController
      */
     public function listarRamosAtividade($params = [])
     {
-        $pdo = \getDbConnection();
-        $stmt = $pdo->query("
-            SELECT DISTINCT ramo_atividade 
-            FROM fornecedores 
-            WHERE ramo_atividade IS NOT NULL AND ramo_atividade != ''
-            ORDER BY ramo_atividade ASC
-        ");
-        $ramos = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        try {
+            $pdo = \getDbConnection();
+            $stmt = $pdo->query("
+                SELECT DISTINCT ramo_atividade 
+                FROM fornecedores 
+                WHERE ramo_atividade IS NOT NULL AND ramo_atividade != ''
+                ORDER BY ramo_atividade ASC
+            ");
+            $ramos = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
-        Router::json($ramos);
+            Router::json($ramos);
+
+        } catch (\PDOException $e) {
+            error_log("Erro na API ao listar ramos de atividade: " . $e->getMessage());
+            Router::json(['error' => 'Erro ao buscar dados.'], 500);
+        }
     }
 
     /**
@@ -489,31 +503,35 @@ class FornecedorController
      */
     public function listarPorRamo($params = [])
     {
-        $queryParams = Router::getQueryData();
-        $ramo = $queryParams['ramo'] ?? '';
+        try {
+            $queryParams = Router::getQueryData();
+            $ramo = $queryParams['ramo'] ?? '';
 
-        $pdo = \getDbConnection();
-        
-        if ($ramo === 'todos' || empty($ramo)) {
-            // Busca todos os fornecedores
-            $stmt = $pdo->prepare("
-                SELECT id, razao_social, cnpj, email 
-                FROM fornecedores 
-                ORDER BY razao_social ASC
-            ");
-            $stmt->execute();
-        } else {
-            // Busca por ramo específico
-            $stmt = $pdo->prepare("
-                SELECT id, razao_social, cnpj, email 
-                FROM fornecedores 
-                WHERE ramo_atividade LIKE ?
-                ORDER BY razao_social ASC
-            ");
-            $stmt->execute(["%{$ramo}%"]);
+            $pdo = \getDbConnection();
+            
+            if ($ramo === 'todos' || empty($ramo)) {
+                $stmt = $pdo->prepare("
+                    SELECT id, razao_social, cnpj, email 
+                    FROM fornecedores 
+                    ORDER BY razao_social ASC
+                ");
+                $stmt->execute();
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT id, razao_social, cnpj, email 
+                    FROM fornecedores 
+                    WHERE ramo_atividade LIKE ?
+                    ORDER BY razao_social ASC
+                ");
+                $stmt->execute(["%{$ramo}%"]);
+            }
+            $fornecedores = $stmt->fetchAll();
+
+            Router::json($fornecedores);
+
+        } catch (\PDOException $e) {
+            error_log("Erro na API ao listar fornecedores por ramo: " . $e->getMessage());
+            Router::json(['error' => 'Erro ao buscar dados.'], 500);
         }
-        $fornecedores = $stmt->fetchAll();
-
-        Router::json($fornecedores);
     }
 }

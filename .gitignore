@@ -124,11 +124,15 @@ composer.phar
 
 # Docker Compose específico
 docker-compose.local.yml
-=======
-.env
 
-#/vendor/
-/docker/db_data/
+# Google Cloud SDK (arquivos muito grandes)
+google-cloud-sdk/
+GoogleCloudSDKInstaller.exe
+*.zip
 
-# Ignorar arquivo de override do Docker Compose
-docker-compose.override.yml
+# Arquivos de setup já executados
+setup-*.ps1
+deploy-*.ps1
+configurar-*.ps1
+install-*.bat
+*.exe

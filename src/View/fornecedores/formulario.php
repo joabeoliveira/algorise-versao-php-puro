@@ -1,12 +1,17 @@
+<?php
+$mensagemFlash = $_SESSION['flash'] ?? null;
+if ($mensagemFlash) {
+    unset($_SESSION['flash']);
+}
+?>
 <div class="container mt-4">
     <h1>Adicionar Novo Fornecedor</h1>
 
-    <?php if (isset($_SESSION['flash_error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?= htmlspecialchars($_SESSION['flash_error']) ?>
+    <?php if ($mensagemFlash): ?>
+        <div class="alert alert-<?= htmlspecialchars($mensagemFlash['tipo']) ?> alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($mensagemFlash['mensagem']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <?php unset($_SESSION['flash_error']); ?>
     <?php endif; ?>
 
     <form action="/fornecedores" method="POST" class="mt-4">

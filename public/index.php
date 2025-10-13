@@ -8,6 +8,32 @@
 require __DIR__ . '/../vendor/autoload.php';
 $settings = require __DIR__ . '/../src/settings-php-puro.php';
 
+// Função para garantir que o usuário admin existe
+function garantirUsuarioAdmin() {
+    try {
+        $pdo = \getDbConnection();
+        
+        // Verifica se já existe usuário admin
+        $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
+        $stmt->execute(['admin@algorise.com']);
+        
+        if (!$stmt->fetch()) {
+            // Criar usuário admin se não existir
+            $senhaHash = password_hash('admin123', PASSWORD_DEFAULT);
+            $sql = "INSERT INTO usuarios (nome, email, senha, role) VALUES 
+                    ('Administrador', 'admin@algorise.com', ?, 'admin')";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$senhaHash]);
+            error_log("Usuário admin criado automaticamente");
+        }
+    } catch (Exception $e) {
+        error_log("Erro ao criar usuário admin: " . $e->getMessage());
+    }
+}
+
+// Garantir que usuário admin existe (importante para primeira execução no Cloud)
+garantirUsuarioAdmin();
+
 // Inicia a sessão após carregar configurações
 session_start();
 

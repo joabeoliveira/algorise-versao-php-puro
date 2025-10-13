@@ -1,0 +1,26 @@
+# Google Cloud ignore file
+#.*#
+*~
+*.py[co]
+.*/RCS/*
+.*
+node_modules/
+storage/logs/*
+tests/
+vendor/*/tests/
+README.md
+.gitignore
+.git/
+docker/
+scripts/
+migrations/
+backups/
+export-dados.ps1
+configurar-gcp-automatico.ps1
+deploy-final.ps1
+setup-gcp.ps1
+GUIA-DEPLOY-COMPLETO.md
+*.exe
+*.zip
+google-cloud-sdk/
+test-ambiente-hibrido.php
