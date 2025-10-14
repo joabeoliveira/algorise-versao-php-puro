@@ -56,6 +56,13 @@ function getDbConnection(): PDO
         : ($_ENV['DB_PASSWORD'] ?? '');
     $charset = 'utf8mb4';
     
+    // Log diagnóstico: apenas indica presença de senha (sem expor valor)
+    try {
+        logarEvento('info', 'DB password presente? ' . (!empty($pass) ? 'sim' : 'nao'));
+    } catch (\Throwable $t) {
+        // ignora
+    }
+    
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -479,7 +486,7 @@ function aplicarHeadersSeguranca(): void
     if (isProduction()) {
         // Headers de segurança para produção
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:;");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; script-src-elem 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com;");
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
         
