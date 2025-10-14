@@ -55,11 +55,12 @@ class Secrets
             $version = 'latest';
             $secretName = $client->secretVersionName($projectId, $name, $version);
             $response = $client->accessSecretVersion($secretName);
+            // Em PHP, getData() retorna o conteúdo do segredo como string (bytes)
             $payload = $response->getPayload()->getData();
-            $value = $payload !== null ? $payload->getContents() : null;
+            $value = $payload !== null ? (string)$payload : null;
             // Normaliza string
             if ($value !== null) {
-                $value = trim((string)$value);
+                $value = trim($value);
             }
             return self::$cache[$name] = $value ?: ($_ENV[$envKey] ?? null);
         } catch (\Throwable $e) {

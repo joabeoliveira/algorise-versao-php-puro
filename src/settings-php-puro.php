@@ -479,7 +479,7 @@ function aplicarHeadersSeguranca(): void
     if (isProduction()) {
         // Headers de segurança para produção
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
-        header('Content-Security-Policy: default-src \'self\'; script-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://unpkg.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src \'self\' https://cdn.jsdelivr.net; img-src \'self\' data: https:;');
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:;");
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
         

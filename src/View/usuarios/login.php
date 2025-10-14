@@ -54,7 +54,14 @@ if (session_status() === PHP_SESSION_NONE) {
             
             <?php if (isset($_SESSION['flash'])): ?>
                 <div class="alert alert-danger" role="alert">
-                    <?= htmlspecialchars($_SESSION['flash']); ?>
+                    <?php
+                    $flash = $_SESSION['flash'];
+                    if (is_array($flash)) {
+                        echo htmlspecialchars(implode("\n", array_map('strval', $flash)));
+                    } else {
+                        echo htmlspecialchars((string)$flash);
+                    }
+                    ?>
                 </div>
                 <?php unset($_SESSION['flash']); ?>
             <?php endif; ?>
