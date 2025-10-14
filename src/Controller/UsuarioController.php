@@ -24,6 +24,9 @@ class UsuarioController
     public function processarLogin($params = [])
     {
         try {
+            if (session_status() === \PHP_SESSION_NONE) {
+                session_start();
+            }
             $dados = Router::getPostData();
             $email = $dados['email'] ?? '';
             $senha = $dados['senha'] ?? '';
@@ -34,6 +37,10 @@ class UsuarioController
             $usuario = $stmt->fetch();
 
             if ($usuario && password_verify($senha, $usuario['senha'])) {
+                // Evita fixação de sessão ao logar
+                if (function_exists('session_regenerate_id')) {
+                    @session_regenerate_id(true);
+                }
                 $_SESSION['usuario_id'] = $usuario['id'];
                 $_SESSION['usuario_nome'] = $usuario['nome'];
                 $_SESSION['usuario_role'] = $usuario['role'];

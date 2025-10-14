@@ -434,10 +434,33 @@ define('ALLOWED_EXTENSIONS', ['csv', 'xlsx', 'xls', 'pdf']);
 
 /**
  * Configurações de sessão mais seguras
+ * Importante: estas diretivas precisam ser definidas antes de qualquer session_start
  */
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_only_cookies', '1');
+
+// Detecta HTTPS considerando proxies do App Engine
+$isHttps = (
+    (isset($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) === 'on') ||
+    (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
+    (isset($_SERVER['HTTP_X_APPENGINE_HTTPS']) && strtolower((string)$_SERVER['HTTP_X_APPENGINE_HTTPS']) === 'on')
+);
+
+$useSecure = isProduction() || $isHttps;
+ini_set('session.cookie_secure', $useSecure ? '1' : '0');
+
+// SameSite moderno para evitar bloqueio de cookie no redirect
+if (PHP_VERSION_ID >= 70300) {
+    ini_set('session.cookie_samesite', 'Lax');
+}
+
+// Em App Engine/produção, garantir save_path gravável
+if (isProduction()) {
+    $savePath = sys_get_temp_dir(); // geralmente /tmp
+    if (is_writable($savePath)) {
+        ini_set('session.save_path', $savePath);
+    }
+}
 
 /**
  * Headers de segurança condicionais baseados no ambiente
