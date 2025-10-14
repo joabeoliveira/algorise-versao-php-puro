@@ -32,7 +32,7 @@
     },
     "scripts": {
         "post-autoload-dump": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+            "@php -r \"file_exists('.env') || (file_exists('.env.example') && copy('.env.example', '.env'));\""
         ],
         "dev": [
             "@php -S localhost:8080 -t public"
@@ -55,7 +55,7 @@
             "gcloud app deploy app.yaml --quiet"
         ],
         "gcp-build": [
-            "composer install --no-dev --optimize-autoloader"
+            "composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts --prefer-dist"
         ],
         "test:env": [
             "@php -r \"echo 'Ambiente: ' . (isset(\\$_SERVER['GAE_ENV']) ? 'Google App Engine' : 'Local') . PHP_EOL;\""
