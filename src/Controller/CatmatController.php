@@ -43,8 +43,8 @@ class CatmatController
             error_log("BUSCA CATMAT: Query recebida = " . $query);
             
             // Usa a mesma lógica da referência que funciona
-            $supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-            $supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
+            $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
+            $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
             
             // Processa termos separados por +
             $termos = array_map('trim', explode('+', $query));
@@ -166,8 +166,8 @@ class CatmatController
 
         try {
             // Busca sugestões no Supabase usando a função RPC existente
-            $supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-            $supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
+            $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
+            $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
             
             // Prepara dados para a chamada RPC
             $postData = [
@@ -372,8 +372,8 @@ class CatmatController
      */
     private function buscarDiretamenteNoSupabase($query, $page = 1, $limit = 60)
     {
-        $supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-        $supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
+    $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
+    $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
         
         // Extrai apenas os termos principais da query, removendo operadores
         $termosLimpos = $this->extrairTermosPrincipais($query);
@@ -495,8 +495,8 @@ class CatmatController
      */
     private function buscarNoSupabase($termosProcessados, $page = 1, $limit = 20)
     {
-        $supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-        $supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
+    $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
+    $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
         
         // Combina termos obrigatórios e frases exatas para busca principal
         $termoBusca = implode(' ', array_merge(

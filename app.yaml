@@ -24,7 +24,6 @@ env_variables:
   # IMPORTANT: Replace with your actual Cloud SQL instance details
   DB_DATABASE: algorise
   DB_USER: algorise-user
-  DB_PASSWORD: "114211Jo@"
   
   # Cloud SQL connection (replace with your connection name)
   # Format: project-id:region:instance-name
@@ -34,7 +33,6 @@ env_variables:
   # Supabase configuration
   # IMPORTANT: Replace with your production Supabase credentials
   SUPABASE_URL: "https://abuowxogoiqzbmnvszys.supabase.co"
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA0NjI5MDQsImV4cCI6MjAzNjAzODkwNH0.pB_CYcdoJJz3GW7Ojh6Ms1TgTh4xs4-_G1hOMgOLQoM"
   
   # Storage configuration
   STORAGE_BUCKET: "algorise-storage-algorise-producao"
@@ -44,8 +42,6 @@ env_variables:
   MAIL_PORT: "587"
   MAIL_ENCRYPTION: "tls"
   MAIL_FROM_NAME: "Algorise Sistema"
-  MAIL_USERNAME: "joabeantonio@gmail.com"
-  MAIL_PASSWORD: "tthvegivjclbssdz"
 
 # URL handlers
 handlers:

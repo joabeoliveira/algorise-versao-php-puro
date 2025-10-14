@@ -23,6 +23,8 @@ date_default_timezone_set('America/Sao_Paulo');
 
 // Carrega o autoloader do Composer (apenas para phpdotenv)
 require __DIR__ . '/../vendor/autoload.php';
+// Importa helper de segredos se disponível
+use Joabe\Buscaprecos\Core\Secrets;
 
 // Carrega as variáveis de ambiente do arquivo .env (apenas em desenvolvimento)
 // No Google App Engine, as variáveis vêm do app.yaml
@@ -48,7 +50,10 @@ function getDbConnection(): PDO
     // Configurações do banco baseadas no ambiente
     $dbname = $_ENV['DB_DATABASE'] ?? 'algorise';
     $user = $_ENV['DB_USER'] ?? 'root';
-    $pass = $_ENV['DB_PASSWORD'] ?? '';
+    // Em produção, busca senha segura no Secret Manager; local usa .env
+    $pass = isProduction()
+        ? (class_exists(Secrets::class) ? (Secrets::get('db-password', 'DB_PASSWORD') ?? ($_ENV['DB_PASSWORD'] ?? '')) : ($_ENV['DB_PASSWORD'] ?? ''))
+        : ($_ENV['DB_PASSWORD'] ?? '');
     $charset = 'utf8mb4';
     
     $options = [

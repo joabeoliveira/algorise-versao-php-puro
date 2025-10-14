@@ -266,12 +266,15 @@ class Mail
     ): bool {
         // Configura SMTP se as variáveis estiverem definidas
         if (isset($_ENV['MAIL_HOST'])) {
+            // Busca credenciais de forma segura (Secret Manager em produção, ENV em desenvolvimento)
+            $username = Secrets::get('mail-username', 'MAIL_USERNAME') ?? ($_ENV['MAIL_USERNAME'] ?? '');
+            $password = Secrets::get('mail-password', 'MAIL_PASSWORD') ?? ($_ENV['MAIL_PASSWORD'] ?? '');
             self::setSmtpConfig([
                 'host' => $_ENV['MAIL_HOST'],
                 'port' => $_ENV['MAIL_PORT'] ?? 587,
                 'encryption' => $_ENV['MAIL_ENCRYPTION'] ?? 'tls',
-                'username' => $_ENV['MAIL_USERNAME'] ?? '',
-                'password' => $_ENV['MAIL_PASSWORD'] ?? ''
+                'username' => $username,
+                'password' => $password
             ]);
         }
         
