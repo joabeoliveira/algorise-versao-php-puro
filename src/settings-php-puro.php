@@ -50,15 +50,17 @@ function getDbConnection(): PDO
     // Configurações do banco baseadas no ambiente
     $dbname = $_ENV['DB_DATABASE'] ?? 'algorise';
     $user = $_ENV['DB_USER'] ?? 'root';
+    // Permite configurar o nome do segredo via env (padrão: db-password)
+    $dbPasswordSecret = $_ENV['DB_PASSWORD_SECRET'] ?? 'db-password';
     // Em produção, busca senha segura no Secret Manager; local usa .env
     $pass = isProduction()
-        ? (class_exists(Secrets::class) ? (Secrets::get('db-password', 'DB_PASSWORD') ?? ($_ENV['DB_PASSWORD'] ?? '')) : ($_ENV['DB_PASSWORD'] ?? ''))
+        ? (class_exists(Secrets::class) ? (Secrets::get($dbPasswordSecret, 'DB_PASSWORD') ?? ($_ENV['DB_PASSWORD'] ?? '')) : ($_ENV['DB_PASSWORD'] ?? ''))
         : ($_ENV['DB_PASSWORD'] ?? '');
     $charset = 'utf8mb4';
     
     // Log diagnóstico: apenas indica presença de senha (sem expor valor)
     try {
-        logarEvento('info', 'DB password presente? ' . (!empty($pass) ? 'sim' : 'nao'));
+        logarEvento('info', 'DB password presente? ' . (!empty($pass) ? 'sim' : 'nao') . ' | segredo: ' . $dbPasswordSecret);
     } catch (\Throwable $t) {
         // ignora
     }

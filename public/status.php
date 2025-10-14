@@ -22,8 +22,10 @@ $data = [
 
 // Valida acesso a Secret Manager (não mostra valores)
 try {
-    $hasDbSecret = class_exists(Secrets::class) && (Secrets::get('db-password') !== null);
+    $dbSecretName = $_ENV['DB_PASSWORD_SECRET'] ?? 'db-password';
+    $hasDbSecret = class_exists(Secrets::class) && (Secrets::get($dbSecretName) !== null);
     $data['secrets'] = [
+        'db-password-secret-name' => $dbSecretName,
         'db-password' => $hasDbSecret ? 'ok' : 'not-found',
     ];
 } catch (Throwable $e) {
