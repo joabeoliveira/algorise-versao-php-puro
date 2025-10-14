@@ -60,7 +60,9 @@ class Secrets
                 return self::$cache[$name] = ($_ENV[$envKey] ?? null);
             }
 
-            $projectId = getenv('GOOGLE_CLOUD_PROJECT') ?: ($_ENV['GOOGLE_CLOUD_PROJECT'] ?? null);
+            // Permite override de projeto via env para secrets cross-project
+            $projectOverride = getenv('SECRET_MANAGER_PROJECT') ?: (getenv('SECRETS_PROJECT') ?: ($_ENV['SECRET_MANAGER_PROJECT'] ?? ($_ENV['SECRETS_PROJECT'] ?? null)));
+            $projectId = $projectOverride ?: (getenv('GOOGLE_CLOUD_PROJECT') ?: ($_ENV['GOOGLE_CLOUD_PROJECT'] ?? null));
             if (!$projectId) {
                 // Como último recurso, pega do appspot
                 $projectId = getenv('GCLOUD_PROJECT') ?: null;
@@ -84,9 +86,13 @@ class Secrets
                 self::$lastInfo['result'] = isset($_ENV[$envKey]) ? 'env' : 'not-found';
                 return self::$cache[$name] = ($_ENV[$envKey] ?? null);
             }
-
             $version = 'latest';
-            $secretName = $client->secretVersionName($projectId, $name, $version);
+            // Suporta nome totalmente qualificado: projects/{p}/secrets/{s}[/versions/{v}]
+            if (str_starts_with($name, 'projects/')) {
+                $secretName = str_contains($name, '/versions/') ? $name : ($name . '/versions/' . $version);
+            } else {
+                $secretName = $client->secretVersionName($projectId, $name, $version);
+            }
             if (function_exists('error_log')) {
                 error_log("[Secrets] Buscando segredo '{$name}' no projeto '{$projectId}' (latest)");
             }
