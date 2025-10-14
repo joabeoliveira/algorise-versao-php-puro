@@ -22,6 +22,14 @@ class Secrets
      */
     public static function get(string $name, ?string $defaultEnvKey = null): ?string
     {
+        // Cache rápido
+        if (isset(self::$cache[$name])) {
+            return self::$cache[$name];
+        }
+
+        // Fallback: chave de ambiente equivalente (ex: DB_PASSWORD)
+        $envKey = $defaultEnvKey ?? strtoupper(str_replace(['-', '.'], ['_', '_'], $name));
+
         self::$lastInfo = [
             'name' => $name,
             'runtime' => self::isGcpRuntime(),
@@ -35,13 +43,6 @@ class Secrets
             'restTokenOk' => null,
             'result' => null,
         ];
-        // Cache rápido
-        if (isset(self::$cache[$name])) {
-            return self::$cache[$name];
-        }
-
-        // Fallback: chave de ambiente equivalente (ex: DB_PASSWORD)
-        $envKey = $defaultEnvKey ?? strtoupper(str_replace(['-', '.'], ['_', '_'], $name));
 
         // Ambiente local/desenvolvimento: usa .env
         if (!self::isGcpRuntime()) {
@@ -50,15 +51,9 @@ class Secrets
             return self::$cache[$name] = $value;
         }
 
-        // Em GCP, tentar Secret Manager
+        // Em GCP, tentar Secret Manager (client e REST)
         try {
             $client = self::getClient();
-            if (!$client) {
-                // Se não conseguiu client (ex: lib não disponível), cai para env
-                self::$lastInfo['clientUsed'] = false;
-                self::$lastInfo['result'] = isset($_ENV[$envKey]) ? 'env' : 'not-found';
-                return self::$cache[$name] = ($_ENV[$envKey] ?? null);
-            }
 
             // Permite override de projeto via env para secrets cross-project
             $projectOverride = getenv('SECRET_MANAGER_PROJECT') ?: (getenv('SECRETS_PROJECT') ?: ($_ENV['SECRET_MANAGER_PROJECT'] ?? ($_ENV['SECRETS_PROJECT'] ?? null)));
@@ -79,59 +74,68 @@ class Secrets
                 $projectId = self::getProjectIdFromMetadata();
             }
             self::$lastInfo['projectId'] = $projectId;
-            if (!$projectId) {
+
+            // Se não há projectId e nem client -> não temos como consultar, cai para env
+            if (!$projectId && !$client) {
                 if (function_exists('error_log')) {
                     error_log("[Secrets] ProjectId não resolvido ao buscar '{$name}'");
                 }
                 self::$lastInfo['result'] = isset($_ENV[$envKey]) ? 'env' : 'not-found';
                 return self::$cache[$name] = ($_ENV[$envKey] ?? null);
             }
-            $version = 'latest';
-            // Suporta nome totalmente qualificado: projects/{p}/secrets/{s}[/versions/{v}]
-            if (str_starts_with($name, 'projects/')) {
-                $secretName = str_contains($name, '/versions/') ? $name : ($name . '/versions/' . $version);
-            } else {
-                $secretName = $client->secretVersionName($projectId, $name, $version);
+
+            // Tenta via client se existir
+            if ($client) {
+                $version = 'latest';
+                // Suporta nome totalmente qualificado: projects/{p}/secrets/{s}[/versions/{v}]
+                if (str_starts_with($name, 'projects/')) {
+                    $secretName = str_contains($name, '/versions/') ? $name : ($name . '/versions/' . $version);
+                } else {
+                    $secretName = $client->secretVersionName($projectId ?? '', $name, $version);
+                }
+                if (function_exists('error_log')) {
+                    error_log("[Secrets] Buscando segredo '{$name}' no projeto '" . ($projectId ?? 'n/a') . "' (latest)");
+                }
+                $response = $client->accessSecretVersion($secretName);
+                // Em PHP, getData() retorna o conteúdo do segredo como string (bytes)
+                $payload = $response->getPayload()->getData();
+                $value = $payload !== null ? (string)$payload : null;
+                if ($value !== null) {
+                    $value = trim($value);
+                }
+                self::$lastInfo['clientUsed'] = true;
+                self::$lastInfo['clientEmpty'] = empty($value);
+                if (function_exists('error_log')) {
+                    error_log("[Secrets] Segredo '{$name}' obtido. Vazio? " . (empty($value) ? 'sim' : 'nao'));
+                }
+                if (!empty($value)) {
+                    self::$lastInfo['result'] = 'client';
+                    return self::$cache[$name] = $value;
+                }
             }
-            if (function_exists('error_log')) {
-                error_log("[Secrets] Buscando segredo '{$name}' no projeto '{$projectId}' (latest)");
+
+            // Client ausente ou valor vazio -> tenta REST (requer projectId)
+            if ($projectId) {
+                $restValue = self::fetchSecretViaRest($projectId, $name);
+                if (function_exists('error_log')) {
+                    error_log("[Secrets] Fallback REST para '{$name}'. Sucesso? " . (!empty($restValue) ? 'sim' : 'nao'));
+                }
+                self::$lastInfo['restTried'] = true;
+                if (!empty($restValue)) {
+                    self::$lastInfo['result'] = 'rest';
+                    return self::$cache[$name] = $restValue;
+                }
             }
-            $response = $client->accessSecretVersion($secretName);
-            // Em PHP, getData() retorna o conteúdo do segredo como string (bytes)
-            $payload = $response->getPayload()->getData();
-            $value = $payload !== null ? (string)$payload : null;
-            // Normaliza string
-            if ($value !== null) {
-                $value = trim($value);
-            }
-            self::$lastInfo['clientUsed'] = true;
-            self::$lastInfo['clientEmpty'] = empty($value);
-            if (function_exists('error_log')) {
-                error_log("[Secrets] Segredo '{$name}' obtido. Vazio? " . (empty($value) ? 'sim' : 'nao'));
-            }
-            if (!empty($value)) {
-                self::$lastInfo['result'] = 'client';
-                return self::$cache[$name] = $value;
-            }
-            // Se veio vazio, tenta fallback REST
-            $restValue = self::fetchSecretViaRest($projectId, $name);
-            if (function_exists('error_log')) {
-                error_log("[Secrets] Fallback REST para '{$name}'. Sucesso? " . (!empty($restValue) ? 'sim' : 'nao'));
-            }
-            self::$lastInfo['restTried'] = true;
-            if (!empty($restValue)) {
-                self::$lastInfo['result'] = 'rest';
-                return self::$cache[$name] = $restValue;
-            }
+
+            // Se chegou aqui, tenta env
             self::$lastInfo['result'] = isset($_ENV[$envKey]) ? 'env' : 'not-found';
             return self::$cache[$name] = ($_ENV[$envKey] ?? null);
         } catch (\Throwable $e) {
-            // Em caso de erro, fallback silencioso para env
+            // Em caso de erro, fallback silencioso para env e tenta REST com metadata
             if (function_exists('error_log')) {
                 error_log('[Secrets] Falha ao acessar Secret Manager: ' . $e->getMessage());
             }
             self::$lastInfo['clientError'] = $e->getMessage();
-            // Tenta REST antes de desistir
             try {
                 $projectId = self::getProjectIdFromMetadata();
                 if ($projectId) {
@@ -225,7 +229,7 @@ class Secrets
             self::$lastInfo['restTokenOk'] = $token ? true : false;
             return $token;
         } catch (\Throwable $e) {
-             self::$lastInfo['restTokenOk'] = false;
+            self::$lastInfo['restTokenOk'] = false;
             return null;
         }
     }
