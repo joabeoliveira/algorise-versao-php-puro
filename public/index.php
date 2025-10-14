@@ -59,7 +59,7 @@ $router = new Router();
 // Middleware de Autenticação Global
 $router->addMiddleware(function() {
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/teste-download', '/status'];
+    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/teste-download', '/status', '/create-admin-temp.php'];
     $isPublic = in_array($path, $publicRoutes) || 
                 str_starts_with($path, '/cotacao/responder') || 
                 str_starts_with($path, '/download-proposta/') || 
