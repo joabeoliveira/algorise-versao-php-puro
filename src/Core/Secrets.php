@@ -49,11 +49,17 @@ class Secrets
                 $projectId = getenv('GCLOUD_PROJECT') ?: null;
             }
             if (!$projectId) {
+                if (function_exists('error_log')) {
+                    error_log("[Secrets] ProjectId não resolvido ao buscar '{$name}'");
+                }
                 return self::$cache[$name] = ($_ENV[$envKey] ?? null);
             }
 
             $version = 'latest';
             $secretName = $client->secretVersionName($projectId, $name, $version);
+            if (function_exists('error_log')) {
+                error_log("[Secrets] Buscando segredo '{$name}' no projeto '{$projectId}' (latest)");
+            }
             $response = $client->accessSecretVersion($secretName);
             // Em PHP, getData() retorna o conteúdo do segredo como string (bytes)
             $payload = $response->getPayload()->getData();
@@ -61,6 +67,9 @@ class Secrets
             // Normaliza string
             if ($value !== null) {
                 $value = trim($value);
+            }
+            if (function_exists('error_log')) {
+                error_log("[Secrets] Segredo '{$name}' obtido. Vazio? " . (empty($value) ? 'sim' : 'nao'));
             }
             return self::$cache[$name] = $value ?: ($_ENV[$envKey] ?? null);
         } catch (\Throwable $e) {

@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/../src/settings-php-puro.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../src/settings-php-puro.php';
 
 use Joabe\Buscaprecos\Core\Secrets;
 
