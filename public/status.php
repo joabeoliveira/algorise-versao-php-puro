@@ -24,9 +24,22 @@ $data = [
 try {
     $dbSecretName = $_ENV['DB_PASSWORD_SECRET'] ?? 'db-password';
     $hasDbSecret = class_exists(Secrets::class) && (Secrets::get($dbSecretName) !== null);
+    $secretsDiag = method_exists(Secrets::class, 'getLastInfo') ? Secrets::getLastInfo() : null;
     $data['secrets'] = [
         'db-password-secret-name' => $dbSecretName,
         'db-password' => $hasDbSecret ? 'ok' : 'not-found',
+        'diag' => $secretsDiag ? [
+            'runtime' => $secretsDiag['runtime'] ?? null,
+            'projectId' => $secretsDiag['projectId'] ?? null,
+            'clientClassExists' => $secretsDiag['clientClassExists'] ?? null,
+            'clientUsed' => $secretsDiag['clientUsed'] ?? null,
+            'clientEmpty' => $secretsDiag['clientEmpty'] ?? null,
+            'clientError' => $secretsDiag['clientError'] ?? null,
+            'restTried' => $secretsDiag['restTried'] ?? null,
+            'restTokenOk' => $secretsDiag['restTokenOk'] ?? null,
+            'restError' => $secretsDiag['restError'] ?? null,
+            'result' => $secretsDiag['result'] ?? null,
+        ] : null,
     ];
 } catch (Throwable $e) {
     $data['secrets_error'] = $e->getMessage();
