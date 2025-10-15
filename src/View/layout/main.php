@@ -471,7 +471,7 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> 
+    <!-- Supabase removido - agora usa banco de dados local -->
     <script src="/js/dashboard.js"></script>
     <script src="/catmat-search/search.js"></script>
     <script src="/js/pesquisa-precos.js"></script>

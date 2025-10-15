@@ -197,17 +197,6 @@ $totalItens = $totalItens ?? count($itens); // Garante que $totalItens sempre te
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // Certifique-se de que a biblioteca Supabase foi carregada no <head>
-    if (typeof window.supabase === 'undefined') {
-        console.error('Biblioteca do Supabase não carregada! Verifique o <script> no <head>.');
-        return;
-    }
-
-    const supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
     const catmatInput = document.getElementById('catmat_input');
     const descricaoInput = document.getElementById('descricao_input');
     
@@ -232,24 +221,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function buscarDescricaoPorCodigo(codigo) {
         try {
-            // Lembre-se de ajustar os nomes da sua tabela e colunas
-            const { data, error } = await supabase
-                .from('catalogo_materiais') 
-                .select('descricao')        
-                .eq('codigo_catmat', codigo) 
-                .limit(1)
-                .single();
+            // Busca na API local que consulta a tabela catmat do Cloud SQL
+            const response = await fetch('/api/catmat/pesquisar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: codigo })
+            });
 
-            if (error && error.code !== 'PGRST116') {
-                throw new Error(error.message);
+            const result = await response.json();
+
+            if (!result.success || !result.data || !result.data.results) {
+                descricaoInput.value = '';
+                return;
             }
+
+            const resultados = result.data.results;
             
-            if (data && data.descricao) {
-                descricaoInput.value = data.descricao;
+            // Procura por correspondência exata do código
+            const itemExato = resultados.find(item => item.catmat === codigo);
+            
+            if (itemExato) {
+                descricaoInput.value = itemExato.descricao;
+            } else if (resultados.length > 0) {
+                // Se não encontrou exato, usa o primeiro resultado
+                descricaoInput.value = resultados[0].descricao;
             }
 
         } catch (error) {
-            console.error('Erro ao buscar descrição no Supabase:', error);
+            console.error('Erro ao buscar descrição:', error);
         }
     }
 });

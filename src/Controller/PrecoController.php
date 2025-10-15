@@ -67,7 +67,8 @@ class PrecoController
         
         if ($dataColeta > $dataAtual) {
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Erro: A data da coleta não pode ser no futuro.'];
-            return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            header("Location: {$redirectUrl}");
+            exit;
         }
 
         $intervalo = $dataAtual->diff($dataColeta);

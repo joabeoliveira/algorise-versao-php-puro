@@ -59,11 +59,10 @@ $router = new Router();
 // Middleware de Autenticação Global
 $router->addMiddleware(function() {
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/teste-download', '/status', '/create-admin-temp.php'];
+    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/status', '/fix-db-schema', '/diagnostico-db', '/teste-crud'];
     $isPublic = in_array($path, $publicRoutes) || 
                 str_starts_with($path, '/cotacao/responder') || 
-                str_starts_with($path, '/download-proposta/') || 
-                str_starts_with($path, '/teste-param/') ||
+                str_starts_with($path, '/download-proposta/') ||
                 str_starts_with($path, '/api/catmat/');
 
     if (!isset($_SESSION['usuario_id']) && !$isPublic) {
@@ -86,16 +85,6 @@ $adminMiddleware = function() {
 // ROTAS PÚBLICAS
 // =====================================
 
-// Teste simples
-$router->get('/teste-download', function($params) {
-    echo "ROTA TESTE FUNCIONANDO!";
-});
-
-// Teste com parâmetros
-$router->get('/teste-param/{arquivo}', function($params) {
-    echo "ROTA COM PARÂMETROS FUNCIONANDO! Arquivo: " . ($params['arquivo'] ?? 'NENHUM');
-});
-
 // Download de propostas 
 $router->get('/download-proposta/{nome_arquivo}', [UsuarioController::class, 'downloadProposta']);
 
@@ -103,6 +92,21 @@ $router->get('/download-proposta/{nome_arquivo}', [UsuarioController::class, 'do
 $router->get('/status', function() {
     // Executa o script existente de status e encerra
     require __DIR__ . '/status.php';
+});
+
+// Fix DB schema (REMOVER APÓS USO!)
+$router->get('/fix-db-schema', function() {
+    require __DIR__ . '/fix-db-schema.php';
+});
+
+// Diagnóstico DB (REMOVER APÓS USO!)
+$router->get('/diagnostico-db', function() {
+    require __DIR__ . '/diagnostico-db.php';
+});
+
+// Teste CRUD (REMOVER APÓS USO!)
+$router->get('/teste-crud', function() {
+    require __DIR__ . '/teste-crud.php';
 });
 
 // Login

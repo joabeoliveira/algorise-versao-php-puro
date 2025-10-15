@@ -63,22 +63,29 @@ class FornecedorController
                 return;
             }
 
-            // SQL DIRETO - inserir fornecedor
+            // SQL DIRETO - inserir fornecedor (colunas corretas do banco)
+            error_log("=== CRIAR FORNECEDOR ===");
+            error_log("Dados recebidos: " . json_encode($dados));
+            
             $stmt = $pdo->prepare("
-                INSERT INTO fornecedores (razao_social, nome_fantasia, cnpj, email, endereco, telefone, responsavel_nome, responsavel_cargo) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO fornecedores (razao_social, cnpj, email, endereco, telefone, ramo_atividade, ativo, data_criacao) 
+                VALUES (?, ?, ?, ?, ?, ?, 1, NOW())
             ");
             
-            $stmt->execute([
+            $params = [
                 $dados['razao_social'] ?? '',
-                $dados['nome_fantasia'] ?? '',
-                preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
+                $dados['cnpj'] ?? '',
                 $dados['email'] ?? '',
                 $dados['endereco'] ?? '',
-                preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
-                $dados['responsavel_nome'] ?? '',
-                $dados['responsavel_cargo'] ?? ''
-            ]);
+                $dados['telefone'] ?? '',
+                $dados['ramo_atividade'] ?? ''
+            ];
+            
+            error_log("Params: " . json_encode($params));
+            $result = $stmt->execute($params);
+            $lastId = $pdo->lastInsertId();
+            
+            error_log("INSERT sucesso! ID: $lastId");
 
 
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Fornecedor cadastrado com sucesso!'];
@@ -140,40 +147,30 @@ class FornecedorController
                 return;
             }
 
-            // SQL DIRETO - atualizar fornecedor
-
-            $camposUpdate = [];
-            $valoresUpdate = [];
-
-            // Limpa e mapeia os dados recebidos
-            $mapeamentos = [
-                'razao_social' => $dados['razao_social'] ?? '',
-                'nome_fantasia' => $dados['nome_fantasia'] ?? '',
-                'cnpj' => preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
-                'email' => $dados['email'] ?? '',
-                'endereco' => $dados['endereco'] ?? '',
-                'telefone' => preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
-                'ramo_atividade' => $dados['ramo_atividade'] ?? '',
-                'ativo' => $dados['ativo'] ?? 0
-            ];
+            // Colunas corretas: razao_social, cnpj, email, endereco, telefone, ramo_atividade, ativo, data_atualizacao
+            error_log("=== ATUALIZAR FORNECEDOR ===");
+            error_log("ID: $id");
+            error_log("Dados: " . json_encode($dados));
 
             $stmt = $pdo->prepare("
                 UPDATE fornecedores 
-                SET razao_social = ?, nome_fantasia = ?, cnpj = ?, email = ?, endereco = ?, telefone = ?, responsavel_nome = ?, responsavel_cargo = ?
+                SET razao_social = ?, cnpj = ?, email = ?, endereco = ?, telefone = ?, ramo_atividade = ?, ativo = ?, data_atualizacao = NOW()
                 WHERE id = ?
             ");
             
-            $stmt->execute([
+            $params = [
                 $dados['razao_social'] ?? '',
-                $dados['nome_fantasia'] ?? '',
                 preg_replace('/\D/', '', $dados['cnpj'] ?? '') ?: null,
                 $dados['email'] ?? '',
                 $dados['endereco'] ?? '',
                 preg_replace('/\D/', '', $dados['telefone'] ?? '') ?: null,
-                $dados['responsavel_nome'] ?? '',
-                $dados['responsavel_cargo'] ?? '',
+                $dados['ramo_atividade'] ?? '',
+                isset($dados['ativo']) ? (int)$dados['ativo'] : 1,
                 $id
-            ]);
+            ];
+            
+            error_log("Params: " . json_encode($params));
+            $stmt->execute($params);
             
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Fornecedor atualizado com sucesso!'];
             Router::redirect('/fornecedores');

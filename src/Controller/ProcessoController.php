@@ -11,9 +11,29 @@ class ProcessoController
         try {
             $pdo = \getDbConnection();
             
-            // SQL DIRETO - sem DatabaseHelper
-            $stmt = $pdo->query("SELECT id, numero_processo, orgao, status, created_at, valor_estimado FROM processos ORDER BY created_at DESC");
+            // SQL DIRETO - buscar TODAS as colunas necessárias
+            $stmt = $pdo->query("SELECT id, numero_processo, orgao, nome_processo, tipo_contratacao, status, agente_responsavel, agente_matricula, uasg, regiao, data_criacao FROM processos ORDER BY data_criacao DESC");
             $processos = $stmt->fetchAll();
+            
+            // Converter ENUMs snake_case para exibição em PT-BR
+            $tipoMap = [
+                'pregao_eletronico' => 'Pregão Eletrônico',
+                'pregao_presencial' => 'Pregão Presencial',
+                'dispensavel' => 'Dispensa de Licitação',
+                'inexigivel' => 'Inexigibilidade'
+            ];
+            
+            $statusMap = [
+                'planejamento' => 'Em Elaboração',
+                'em_andamento' => 'Pesquisa em Andamento',
+                'concluido' => 'Finalizado',
+                'cancelado' => 'Cancelado'
+            ];
+            
+            foreach ($processos as &$processo) {
+                $processo['tipo_contratacao'] = $tipoMap[$processo['tipo_contratacao']] ?? $processo['tipo_contratacao'];
+                $processo['status'] = $statusMap[$processo['status']] ?? $processo['status'];
+            }
 
             $tituloPagina = "Lista de Processos";
             $paginaConteudo = __DIR__ . '/../View/processos/lista.php';
@@ -46,30 +66,71 @@ class ProcessoController
     public function criar($params = [])
     {
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
+        
+        // Log de debug
+        error_log("=== CRIAR PROCESSO ===");
+        error_log("Dados recebidos: " . json_encode($dados));
 
         try {
             $pdo = \getDbConnection();
             
-            // SQL DIRETO - campos fixos
-            $stmt = $pdo->prepare("
-                INSERT INTO processos (numero_processo, nome_processo, orgao, status, valor_estimado, tipo_contratacao, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
-            ");
+            // Validação básica
+            if (empty($dados['numero_processo'])) {
+                error_log("Erro: numero_processo vazio");
+                $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Número do processo é obrigatório'];
+                \Joabe\Buscaprecos\Core\Router::redirect('/processos/novo');
+                return;
+            }
             
-            $stmt->execute([
+            // Converter valores do formulário para snake_case do ENUM
+            $tipoContratacaoMap = [
+                'Pregão Eletrônico' => 'pregao_eletronico',
+                'Dispensa de Licitação' => 'dispensavel',
+                'Inexigibilidade' => 'inexigivel',
+                'Compra Direta' => 'dispensavel'
+            ];
+            
+            $statusMap = [
+                'Em Elaboração' => 'planejamento',
+                'Pesquisa em Andamento' => 'em_andamento',
+                'Finalizado' => 'concluido',
+                'Cancelado' => 'cancelado'
+            ];
+            
+            $tipoContratacao = $tipoContratacaoMap[$dados['tipo_contratacao'] ?? ''] ?? 'pregao_eletronico';
+            $status = $statusMap[$dados['status'] ?? ''] ?? 'planejamento';
+            
+            // Colunas: numero_processo, orgao, nome_processo, tipo_contratacao, status, agente_responsavel, agente_matricula, uasg, regiao, data_criacao
+            $sql = "INSERT INTO processos (numero_processo, orgao, nome_processo, tipo_contratacao, status, agente_responsavel, agente_matricula, uasg, regiao, data_criacao) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            $stmt = $pdo->prepare($sql);
+            
+            $params = [
                 $dados['numero_processo'] ?? '',
-                $dados['nome_processo'] ?? $dados['nome'] ?? '',
                 $dados['orgao'] ?? '',
-                $dados['status'] ?? 'Rascunho',
-                $dados['valor_estimado'] ?? 0,
-                $dados['tipo_contratacao'] ?? ''
-            ]);
+                $dados['nome_processo'] ?? $dados['nome'] ?? '',
+                $tipoContratacao,
+                $status,
+                $dados['agente_responsavel'] ?? $_SESSION['usuario_nome'] ?? 'Sistema',
+                $dados['agente_matricula'] ?? '',
+                $dados['uasg'] ?? '',
+                $dados['regiao'] ?? ''
+            ];
+            
+            error_log("SQL: $sql");
+            error_log("Params: " . json_encode($params));
+            
+            $result = $stmt->execute($params);
+            $lastId = $pdo->lastInsertId();
+            
+            error_log("INSERT sucesso! ID: $lastId, Linhas afetadas: " . $stmt->rowCount());
             
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Processo criado com sucesso!'];
             \Joabe\Buscaprecos\Core\Router::redirect('/processos');
             
         } catch (\Exception $e) {
-            error_log("Erro ao criar processo: " . $e->getMessage());
+            error_log("ERRO ao criar processo: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             $_SESSION['flash'] = [
                 'tipo' => 'danger',
                 'mensagem' => 'Ocorreu um erro ao criar o processo. Tente novamente.',
@@ -112,22 +173,50 @@ class ProcessoController
         try {
             $pdo = \getDbConnection();
             
-            // SQL DIRETO - atualização simples
+            // Converter valores do formulário para snake_case do ENUM
+            $tipoContratacaoMap = [
+                'Pregão Eletrônico' => 'pregao_eletronico',
+                'Dispensa de Licitação' => 'dispensavel',
+                'Inexigibilidade' => 'inexigivel',
+                'Compra Direta' => 'dispensavel'
+            ];
+            
+            $statusMap = [
+                'Em Elaboração' => 'planejamento',
+                'Pesquisa em Andamento' => 'em_andamento',
+                'Finalizado' => 'concluido',
+                'Cancelado' => 'cancelado'
+            ];
+            
+            $tipoContratacao = $tipoContratacaoMap[$dados['tipo_contratacao'] ?? ''] ?? 'pregao_eletronico';
+            $status = $statusMap[$dados['status'] ?? ''] ?? 'planejamento';
+            
+            error_log("=== ATUALIZAR PROCESSO ===");
+            error_log("ID: $id");
+            error_log("Tipo Original: " . ($dados['tipo_contratacao'] ?? '') . " -> Convertido: $tipoContratacao");
+            error_log("Status Original: " . ($dados['status'] ?? '') . " -> Convertido: $status");
+            
             $stmt = $pdo->prepare("
                 UPDATE processos 
-                SET numero_processo = ?, nome_processo = ?, orgao = ?, status = ?, valor_estimado = ?, tipo_contratacao = ?
+                SET numero_processo = ?, orgao = ?, nome_processo = ?, tipo_contratacao = ?, status = ?, agente_responsavel = ?, agente_matricula = ?, uasg = ?, regiao = ?, data_atualizacao = NOW()
                 WHERE id = ?
             ");
             
-            $stmt->execute([
+            $params = [
                 $dados['numero_processo'] ?? '',
-                $dados['nome_processo'] ?? $dados['nome'] ?? '',
                 $dados['orgao'] ?? '',
-                $dados['status'] ?? '',
-                $dados['valor_estimado'] ?? 0,
-                $dados['tipo_contratacao'] ?? '',
+                $dados['nome_processo'] ?? $dados['nome'] ?? '',
+                $tipoContratacao,
+                $status,
+                $dados['agente_responsavel'] ?? $_SESSION['usuario_nome'] ?? 'Sistema',
+                $dados['agente_matricula'] ?? '',
+                $dados['uasg'] ?? '',
+                $dados['regiao'] ?? '',
                 $id
-            ]);
+            ];
+            
+            error_log("Params: " . json_encode($params));
+            $stmt->execute($params);
             
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Processo atualizado com sucesso!'];
             \Joabe\Buscaprecos\Core\Router::redirect('/processos');

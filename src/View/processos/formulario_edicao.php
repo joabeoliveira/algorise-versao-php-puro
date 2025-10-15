@@ -7,6 +7,10 @@
             <input type="text" class="form-control" id="numero_processo" name="numero_processo" value="<?= htmlspecialchars($processo['numero_processo']) ?>" required>
         </div>
         <div class="mb-3">
+            <label for="orgao" class="form-label">Órgão</label>
+            <input type="text" class="form-control" id="orgao" name="orgao" value="<?= htmlspecialchars($processo['orgao'] ?? '') ?>" placeholder="Ex: Ministério da Defesa" required>
+        </div>
+        <div class="mb-3">
             <label for="nome_processo" class="form-label">Nome do Processo</label>
             <input type="text" class="form-control" id="nome_processo" name="nome_processo" value="<?= htmlspecialchars($processo['nome_processo']) ?>" required>
         </div>

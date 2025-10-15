@@ -322,8 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event listeners para busca
-    buscaInput.addEventListener('input', debounce(function() {
-        const termo = this.value.trim();
+    buscaInput.addEventListener('input', debounce(function(e) {
+        const termo = e.target.value?.trim() || '';
         if (termo.length >= 2) {
             buscarSugestoes(termo);
         } else {

@@ -488,13 +488,21 @@ function aplicarHeadersSeguranca(): void
     if (isProduction()) {
         // Headers de segurança para produção
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; script-src-elem 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com;");
+        $csp = "default-src 'self';" .
+               " script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;" .
+               " style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com;" .
+               " font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com;" .
+               " img-src 'self' data: https:;" .
+               " connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://abuowxogoiqzbmnvszys.supabase.co;" .
+               " form-action 'self';";
+        header("Content-Security-Policy: " . $csp);
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
         
         // Cache control para produção
         if (strpos($_SERVER['REQUEST_URI'] ?? '', '/css/') !== false || 
-            strpos($_SERVER['REQUEST_URI'] ?? '', '/js/') !== false) {
+            strpos($_SERVER['REQUEST_URI'] ?? '', '/js/') !== false ||
+            strpos($_SERVER['REQUEST_URI'] ?? '', '/catmat-search/') !== false) {
             header('Cache-Control: public, max-age=31536000'); // 1 ano para assets
         }
         

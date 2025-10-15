@@ -30,10 +30,6 @@ env_variables:
   CLOUD_SQL_CONNECTION_NAME: "algorise-producao:southamerica-east1:algorise-db"
   DB_SOCKET_DIR: "/cloudsql"
   
-  # Supabase configuration
-  # IMPORTANT: Replace with your production Supabase credentials
-  SUPABASE_URL: "https://abuowxogoiqzbmnvszys.supabase.co"
-  
   # Storage configuration
   STORAGE_BUCKET: "algorise-storage-algorise-producao"
 
@@ -54,6 +50,12 @@ handlers:
     
   - url: /js
     static_dir: public/js
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=86400"
+    
+  - url: /catmat-search
+    static_dir: public/catmat-search
     secure: always
     http_headers:
       Cache-Control: "public, max-age=86400"

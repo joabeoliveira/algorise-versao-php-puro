@@ -89,13 +89,16 @@ class ItemController
                 }
             }
 
-            // SQL DIRETO - inserir item
+            // SQL DIRETO - inserir item (nomes corretos das colunas)
+            error_log("=== CRIAR ITEM ===");
+            error_log("Dados recebidos: " . json_encode($dados));
+            
             $stmt = $pdo->prepare("
-                INSERT INTO itens (processo_id, numero_item, catmat, descricao, unidade_medida, quantidade_estimada, valor_estimado) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO itens (processo_id, numero_item, catmat_catser, descricao, unidade_medida, quantidade, valor_estimado, data_criacao) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
             ");
             
-            $stmt->execute([
+            $params = [
                 $processo_id,
                 $dados['numero_item'] ?? null,
                 $dados['catmat'] ?? $dados['catmat_catser'] ?? null,
@@ -103,7 +106,10 @@ class ItemController
                 $dados['unidade_medida'] ?? $dados['unidade'] ?? 'UN',
                 $dados['quantidade'] ?? 1,
                 $dados['valor_estimado'] ?? $dados['valor_unitario'] ?? null
-            ]);
+            ];
+            
+            error_log("Params: " . json_encode($params));
+            $stmt->execute($params);
             
 
 
@@ -202,24 +208,30 @@ class ItemController
                 }
             }
 
-            // SQL DIRETO - atualização simples
+            // Colunas corretas: numero_item, catmat_catser, descricao, unidade_medida, quantidade, valor_estimado, data_atualizacao
+            error_log("=== ATUALIZAR ITEM ===");
+            error_log("Item ID: $item_id, Processo ID: $processo_id");
+            error_log("Dados: " . json_encode($dados));
             
             $stmt = $pdo->prepare("
                 UPDATE itens 
-                SET numero_item = ?, catmat = ?, descricao = ?, unidade_medida = ?, quantidade_estimada = ?, valor_estimado = ?
+                SET numero_item = ?, catmat_catser = ?, descricao = ?, unidade_medida = ?, quantidade = ?, valor_estimado = ?, data_atualizacao = NOW()
                 WHERE id = ? AND processo_id = ?
             ");
             
-            $stmt->execute([
+            $params = [
                 $dados['numero_item'] ?? null,
                 $dados['catmat'] ?? $dados['catmat_catser'] ?? null,
                 $dados['descricao'] ?? '',
                 $dados['unidade_medida'] ?? $dados['unidade'] ?? 'UN',
-                $dados['quantidade_estimada'] ?? $dados['quantidade'] ?? 1,
+                $dados['quantidade'] ?? 1,
                 $dados['valor_estimado'] ?? $dados['valor_unitario'] ?? null,
                 $item_id,
                 $processo_id
-            ]);
+            ];
+            
+            error_log("Params: " . json_encode($params));
+            $stmt->execute($params);
 
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Item atualizado com sucesso.'];
             \Joabe\Buscaprecos\Core\Router::redirect($redirectUrl);

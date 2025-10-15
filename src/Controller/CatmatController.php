@@ -27,7 +27,7 @@ class CatmatController
     }
 
     /**
-     * API para pesquisa via AJAX - usa diretamente o Supabase como referência
+     * API para pesquisa via AJAX - usa banco de dados local
      */
     public function pesquisar($params = [])
     {
@@ -42,9 +42,7 @@ class CatmatController
         try {
             error_log("BUSCA CATMAT: Query recebida = " . $query);
             
-            // Usa a mesma lógica da referência que funciona
-            $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
-            $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
+            $pdo = \getDbConnection();
             
             // Processa termos separados por +
             $termos = array_map('trim', explode('+', $query));
@@ -54,76 +52,81 @@ class CatmatController
             
             error_log("Termos processados: " . print_r($termos, true));
             
-            // Se há múltiplos termos, usa função específica para múltiplos termos
+            // Monta a query SQL com FULLTEXT ou LIKE dependendo do número de termos
             if (count($termos) > 1) {
-                // Usa função do Supabase para múltiplos termos (como na referência)
-                $postData = [
-                    'termos' => $termos,
-                    'limite' => 100,
-                    'offset_val' => 0
-                ];
-                $rpcFunction = 'buscar_itens_multiplos_termos';
+                // Múltiplos termos: cada termo deve aparecer na descrição
+                $whereClauses = [];
+                $params = [];
+                
+                foreach ($termos as $termo) {
+                    $whereClauses[] = "descricao_do_item LIKE ?";
+                    $params[] = "%{$termo}%";
+                }
+                
+                $sql = "SELECT 
+                            codigo_do_item as codigo_catmat,
+                            descricao_do_item as descricao
+                        FROM catmat
+                        WHERE " . implode(' AND ', $whereClauses) . "
+                        ORDER BY LENGTH(descricao_do_item) ASC
+                        LIMIT 100";
+                        
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                error_log("Busca múltiplos termos: " . count($data) . " resultados");
+                
             } else {
-                // Busca simples
-                $postData = [
-                    'texto_busca' => $termos[0],
-                    'limite' => 100,
-                    'offset_val' => 0
-                ];
-                $rpcFunction = 'buscar_itens_similares';
+                // Termo único: usa FULLTEXT SEARCH para melhor performance
+                $termo = $termos[0];
+                
+                // Tenta FULLTEXT primeiro (mais rápido)
+                $sql = "SELECT 
+                            codigo_do_item as codigo_catmat,
+                            descricao_do_item as descricao,
+                            MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE) as relevancia
+                        FROM catmat
+                        WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
+                        ORDER BY relevancia DESC
+                        LIMIT 100";
+                        
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$termo, $termo]);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                // Se não encontrou nada com FULLTEXT, usa LIKE como fallback
+                if (empty($data)) {
+                    error_log("FULLTEXT vazio, usando LIKE fallback");
+                    $sql = "SELECT 
+                                codigo_do_item as codigo_catmat,
+                                descricao_do_item as descricao
+                            FROM catmat
+                            WHERE descricao_do_item LIKE ?
+                            ORDER BY LENGTH(descricao_do_item) ASC
+                            LIMIT 100";
+                            
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute(["%{$termo}%"]);
+                    $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                }
+                
+                error_log("Busca termo único: " . count($data) . " resultados");
             }
             
-            $headers = [
-                'Content-Type: application/json',
-                'apikey: ' . $supabaseKey,
-                'Authorization: Bearer ' . $supabaseKey
-            ];
-            
-            $context = stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => implode("\r\n", $headers),
-                    'content' => json_encode($postData)
-                ]
-            ]);
-            
-            error_log("Chamando: " . $rpcFunction . " | Dados: " . json_encode($postData));
-            
-            $response = file_get_contents($supabaseUrl . '/rest/v1/rpc/' . $rpcFunction, false, $context);
-            $data = json_decode($response, true);
-            
-            error_log("Resposta Supabase: " . ($data ? count($data) . " itens" : "ERRO/VAZIO"));
-            
-            if (!$data) {
-                error_log("ERRO: Nenhum dado retornado do Supabase");
+            if (!$data || count($data) === 0) {
+                error_log("AVISO: Nenhum dado retornado do banco de dados");
                 Router::json(['success' => true, 'data' => ['results' => [], 'total' => 0]]);
                 return;
             }
             
-            // Se há múltiplos termos e a função específica falhou, filtra manualmente
-            if (count($termos) > 1 && $rpcFunction === 'buscar_itens_similares') {
-                error_log("Aplicando filtro manual para termos: " . implode(', ', $termos));
-                $data = array_filter($data, function($item) use ($termos) {
-                    $descricao = strtolower($item['descricao']);
-                    foreach ($termos as $termo) {
-                        $termoLimpo = strtolower(trim($termo));
-                        if (empty($termoLimpo)) continue;
-                        if (!str_contains($descricao, $termoLimpo)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                });
-                error_log("Após filtro manual: " . count($data) . " resultados");
-            }
-            
-            // Converte para formato esperado
+            // Dados já vêm no formato esperado do banco
             $results = [];
             foreach ($data as $item) {
                 $results[] = [
                     'catmat' => $item['codigo_catmat'],
                     'descricao' => $item['descricao'],
-                    'relevancia' => 85 // Valor fixo por enquanto
+                    'relevancia' => $item['relevancia'] ?? 85
                 ];
             }
             
@@ -165,33 +168,34 @@ class CatmatController
         }
 
         try {
-            // Busca sugestões no Supabase usando a função RPC existente
-            $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
-            $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
+            // Busca sugestões no banco de dados local
+            $pdo = \getDbConnection();
             
-            // Prepara dados para a chamada RPC
-            $postData = [
-                'texto_busca' => $termo,
-                'limite' => 15,
-                'offset_val' => 0
-            ];
+            // Usa FULLTEXT para melhor performance
+            $sql = "SELECT 
+                        codigo_do_item as codigo_catmat,
+                        descricao_do_item as descricao
+                    FROM catmat
+                    WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
+                    LIMIT 15";
+                    
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$termo]);
+            $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
-            $headers = [
-                'Content-Type: application/json',
-                'apikey: ' . $supabaseKey,
-                'Authorization: Bearer ' . $supabaseKey
-            ];
-            
-            $context = stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => implode("\r\n", $headers),
-                    'content' => json_encode($postData)
-                ]
-            ]);
-            
-            $response = file_get_contents($supabaseUrl . '/rest/v1/rpc/buscar_itens_similares', false, $context);
-            $data = json_decode($response, true);
+            // Fallback para LIKE se FULLTEXT não retornar resultados
+            if (empty($data)) {
+                $sql = "SELECT 
+                            codigo_do_item as codigo_catmat,
+                            descricao_do_item as descricao
+                        FROM catmat
+                        WHERE descricao_do_item LIKE ?
+                        LIMIT 15";
+                        
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(["%{$termo}%"]);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            }
             
             if ($data) {
                 // Formata as sugestões para o formato esperado
@@ -368,12 +372,11 @@ class CatmatController
     }
 
     /**
-     * Busca diretamente no Supabase sem processar operadores primeiro
+     * Busca diretamente no banco de dados local sem processar operadores primeiro
      */
-    private function buscarDiretamenteNoSupabase($query, $page = 1, $limit = 60)
+    private function buscarDiretamenteNoBanco($query, $page = 1, $limit = 60)
     {
-    $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
-    $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
+        $pdo = \getDbConnection();
         
         // Extrai apenas os termos principais da query, removendo operadores
         $termosLimpos = $this->extrairTermosPrincipais($query);
@@ -385,39 +388,35 @@ class CatmatController
         // Usa o primeiro termo mais relevante para a busca inicial
         $termoPrincipal = $termosLimpos[0];
         
-        $postData = [
-            'texto_busca' => $termoPrincipal,
-            'limite' => $limit,
-            'offset_val' => 0
-        ];
-        
-        $headers = [
-            'Content-Type: application/json',
-            'apikey: ' . $supabaseKey,
-            'Authorization: Bearer ' . $supabaseKey
-        ];
-        
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => implode("\r\n", $headers),
-                'content' => json_encode($postData),
-                'timeout' => 30
-            ]
-        ]);
-        
         try {
-            $response = file_get_contents($supabaseUrl . '/rest/v1/rpc/buscar_itens_similares', false, $context);
+            // Tenta FULLTEXT primeiro
+            $sql = "SELECT 
+                        codigo_do_item,
+                        descricao_do_item as descricao
+                    FROM catmat
+                    WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
+                    LIMIT ?";
+                    
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$termoPrincipal, $limit]);
+            $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
-            if ($response === false) {
-                error_log("Erro ao conectar com Supabase");
-                return [];
+            // Fallback para LIKE se necessário
+            if (empty($data)) {
+                $sql = "SELECT 
+                            codigo_do_item,
+                            descricao_do_item as descricao
+                        FROM catmat
+                        WHERE descricao_do_item LIKE ?
+                        LIMIT ?";
+                        
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(["%{$termoPrincipal}%", $limit]);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             }
             
-            $data = json_decode($response, true);
-            
             if (!$data || !is_array($data)) {
-                error_log("Resposta inválida do Supabase: " . $response);
+                error_log("Nenhum resultado encontrado no banco");
                 return [];
             }
             
@@ -491,12 +490,11 @@ class CatmatController
     }
 
     /**
-     * Busca dados no Supabase usando a função RPC existente
+     * Busca dados no banco de dados local
      */
-    private function buscarNoSupabase($termosProcessados, $page = 1, $limit = 20)
+    private function buscarNoBanco($termosProcessados, $page = 1, $limit = 20)
     {
-    $supabaseUrl = $_ENV['SUPABASE_URL'] ?? '';
-    $supabaseKey = \Joabe\Buscaprecos\Core\Secrets::get('supabase-anon-key', 'SUPABASE_ANON_KEY') ?? ($_ENV['SUPABASE_ANON_KEY'] ?? '');
+        $pdo = \getDbConnection();
         
         // Combina termos obrigatórios e frases exatas para busca principal
         $termoBusca = implode(' ', array_merge(
@@ -508,35 +506,44 @@ class CatmatController
             return [];
         }
         
-        $postData = [
-            'texto_busca' => $termoBusca,
-            'limite' => $limit * 3, // Busca mais para depois filtrar
-            'offset_val' => 0
-        ];
-        
-        $headers = [
-            'Content-Type: application/json',
-            'apikey: ' . $supabaseKey,
-            'Authorization: Bearer ' . $supabaseKey
-        ];
-        
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => implode("\r\n", $headers),
-                'content' => json_encode($postData)
-            ]
-        ]);
-        
-        $response = file_get_contents($supabaseUrl . '/rest/v1/rpc/buscar_itens_similares', false, $context);
-        $data = json_decode($response, true);
-        
-        if (!$data) {
+        try {
+            // Busca com FULLTEXT
+            $sql = "SELECT 
+                        codigo_do_item,
+                        descricao_do_item as descricao
+                    FROM catmat
+                    WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
+                    LIMIT ?";
+                    
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$termoBusca, $limit * 3]); // Busca mais para filtrar depois
+            $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Fallback para LIKE
+            if (empty($data)) {
+                $sql = "SELECT 
+                            codigo_do_item,
+                            descricao_do_item as descricao
+                        FROM catmat
+                        WHERE descricao_do_item LIKE ?
+                        LIMIT ?";
+                        
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(["%{$termoBusca}%", $limit * 3]);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            }
+            
+            if (!$data) {
+                return [];
+            }
+            
+            // Aplica filtros de operadores
+            return $this->filtrarPorOperadores($data, $termosProcessados);
+            
+        } catch (\Exception $e) {
+            error_log("Erro na busca no banco: " . $e->getMessage());
             return [];
         }
-        
-        // Aplica filtros de operadores
-        return $this->filtrarPorOperadores($data, $termosProcessados);
     }
 
     /**

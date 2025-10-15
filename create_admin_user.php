@@ -10,9 +10,9 @@ require __DIR__ . '/src/settings-php-puro.php';
 try {
     $pdo = getDbConnection();
     
-    $email = 'joabeantonio@gmail.com';
-    $senha = '114211Jo@';
-    $nome = 'Joabe Antonio';
+    $email = 'admin@admin.com';
+    $senha = '114211Jo';
+    $nome = 'Admin';
     $tipo = 'admin';
     
     // Hash da senha

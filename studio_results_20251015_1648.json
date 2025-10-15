@@ -1,0 +1,72 @@
+[
+  {
+    "COLUMN_NAME": "codigo_da_classe",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "10",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "codigo_do_grupo",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "10",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "codigo_do_item",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "10",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "codigo_do_pdm",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "10",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "codigo_ncm",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "10",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "descricao_do_item",
+    "DATA_TYPE": "text",
+    "CHARACTER_MAXIMUM_LENGTH": "65535",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "id_catmat",
+    "DATA_TYPE": "int",
+    "CHARACTER_MAXIMUM_LENGTH": "",
+    "NUMERIC_PRECISION": "10",
+    "NUMERIC_SCALE": "0"
+  },
+  {
+    "COLUMN_NAME": "nome_da_classe",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "100",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "nome_do_grupo",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "100",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  },
+  {
+    "COLUMN_NAME": "nome_do_pdm",
+    "DATA_TYPE": "varchar",
+    "CHARACTER_MAXIMUM_LENGTH": "100",
+    "NUMERIC_PRECISION": "",
+    "NUMERIC_SCALE": ""
+  }
+]

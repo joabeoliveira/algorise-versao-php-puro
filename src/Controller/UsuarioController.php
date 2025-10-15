@@ -259,8 +259,8 @@ class UsuarioController
         try {
             $pdo = \getDbConnection();
             
-            // SQL DIRETO - sem DatabaseHelper
-            $stmt = $pdo->prepare("SELECT id, nome, email, role, created_at FROM usuarios ORDER BY nome");
+            // SQL DIRETO - sem DatabaseHelper (usando criado_em correto)
+            $stmt = $pdo->prepare("SELECT id, nome, email, role, ativo, criado_em FROM usuarios ORDER BY nome");
             $stmt->execute();
             $usuarios = $stmt->fetchAll();
 
@@ -386,21 +386,28 @@ class UsuarioController
     {
         $id = $params['id'] ?? 0;
         $dados = Router::getPostData();
+        
+        error_log("=== ATUALIZAR USUÁRIO ===");
+        error_log("ID: $id");
+        error_log("Dados recebidos: " . json_encode($dados));
 
         // Validações
         if (empty($dados['nome']) || empty($dados['email'])) {
+            error_log("Validação falhou: nome ou email vazio");
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'Nome e e-mail são obrigatórios.'];
             Router::redirect("/usuarios/{$id}/editar");
             return;
         }
 
         if (!validarEmail($dados['email'])) {
+            error_log("Validação falhou: email inválido");
             $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'E-mail inválido.'];
             Router::redirect("/usuarios/{$id}/editar");
             return;
         }
 
-        $role = in_array($dados['role'] ?? '', ['admin', 'user']) ? $dados['role'] : 'user';
+        // Corrigir role: banco aceita 'admin' e 'usuario' (não 'user')
+        $role = in_array($dados['role'] ?? '', ['admin', 'usuario']) ? $dados['role'] : 'usuario';
         $pdo = \getDbConnection();
 
         try {
@@ -413,20 +420,26 @@ class UsuarioController
                 }
                 
                 $senhaHash = password_hash($dados['senha'], PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare(" 
-                    UPDATE usuarios SET nome = ?, email = ?, senha = ?, role = ? WHERE id = ?
-                ");
-                $stmt->execute([$dados['nome'], $dados['email'], $senhaHash, $role, $id]);
+                $sql = "UPDATE usuarios SET nome = ?, email = ?, senha = ?, role = ?, atualizado_em = NOW() WHERE id = ?";
+                $stmt = $pdo->prepare($sql);
+                $params = [$dados['nome'], $dados['email'], $senhaHash, $role, $id];
+                error_log("SQL (com senha): $sql");
+                error_log("Params: " . json_encode($params));
+                $stmt->execute($params);
             } else {
                 // Atualiza sem alterar a senha
-                $stmt = $pdo->prepare(" 
-                    UPDATE usuarios SET nome = ?, email = ?, role = ? WHERE id = ?
-                ");
-                $stmt->execute([$dados['nome'], $dados['email'], $role, $id]);
+                $sql = "UPDATE usuarios SET nome = ?, email = ?, role = ?, atualizado_em = NOW() WHERE id = ?";
+                $stmt = $pdo->prepare($sql);
+                $params = [$dados['nome'], $dados['email'], $role, $id];
+                error_log("SQL (sem senha): $sql");
+                error_log("Params: " . json_encode($params));
+                $stmt->execute($params);
             }
             
+            error_log("UPDATE sucesso! Linhas afetadas: " . $stmt->rowCount());
             $_SESSION['flash'] = ['tipo' => 'success', 'mensagem' => 'Usuário atualizado com sucesso!'];
         } catch (\PDOException $e) {
+            error_log("ERRO ao atualizar usuário: " . $e->getMessage());
             if ($e->getCode() == 23000) {
                 $_SESSION['flash'] = ['tipo' => 'danger', 'mensagem' => 'E-mail já cadastrado para outro usuário.'];
             } else {

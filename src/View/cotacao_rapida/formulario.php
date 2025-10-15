@@ -153,17 +153,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Verifica se já existe uma instância do Supabase
-    if (window.supabaseClientInstance) {
-        console.warn('Instância do Supabase já existe. Reutilizando...');
-    } else {
-        // Configuração única do Supabase
-        const supabaseUrl = 'https://abuowxogoiqzbmnvszys.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidW93eG9nb2lxemJtbnZzenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNTcwNTcsImV4cCI6MjA2NDgzMzA1N30.t6b1vtcZhGfOfibwdWKLDUJq2BoRegH5s6P5_OvRwz8';
-        window.supabaseClientInstance = window.supabase.createClient(supabaseUrl, supabaseKey);
-    }
-
-    const supabase = window.supabaseClientInstance;
     const itensContainer = document.getElementById('itens-container');
     if (!itensContainer) return;
 
@@ -198,25 +187,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             buscaControl.lastRequest = controller;
             
-            const { data, error } = await supabase
-                .from('catalogo_materiais')
-                .select('descricao')
-                .eq('codigo_catmat', catmatValue)
-                .limit(1)
-                .abortSignal(controller.signal)
-                .single();
+            // Busca na API local que consulta a tabela catmat do Cloud SQL
+            const response = await fetch('/api/catmat/pesquisar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: catmatValue }),
+                signal: controller.signal
+            });
 
+            const result = await response.json();
             buscaControl.lastRequest = null;
 
-            if (error) {
-                if (error.code === 'PGRST116') { // Nenhum resultado encontrado
-                    descricaoInput.value = 'Código não encontrado';
-                } else if (error.name !== 'AbortError') {
-                    throw error;
-                }
-            } else if (data) {
-                descricaoInput.value = data.descricao;
+            if (!result.success || !result.data || !result.data.results) {
+                descricaoInput.value = 'Código não encontrado';
+                return;
             }
+
+            const resultados = result.data.results;
+            
+            // Procura por correspondência exata do código
+            const itemExato = resultados.find(item => item.catmat === catmatValue);
+            
+            if (itemExato) {
+                descricaoInput.value = itemExato.descricao;
+            } else if (resultados.length > 0) {
+                // Se não encontrou exato, usa o primeiro resultado
+                descricaoInput.value = resultados[0].descricao;
+            } else {
+                descricaoInput.value = 'Código não encontrado';
+            }
+
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Erro ao buscar descrição:', error);
