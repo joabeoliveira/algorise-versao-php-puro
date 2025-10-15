@@ -255,3 +255,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script src="/public/catmat-search/search.js"></script>

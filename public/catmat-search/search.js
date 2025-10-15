@@ -2,8 +2,10 @@
 // depois que todo o HTML da página foi carregado pelo navegador.
 document.addEventListener('DOMContentLoaded', () => {
 
-    // I. Configuração - Agora usa banco de dados local via API
-    console.log('[CATMAT Search] Usando API local do banco de dados');    // II. Seleção dos Elementos do DOM
+    // Configuração - Usa banco de dados local via API
+    console.log('[CATMAT Search] Usando API local do banco de dados');
+    
+    // Seleção dos Elementos do DOM
     const inputBuscaModal = document.getElementById('inputBuscaModal');
     const listaSugestoes = document.getElementById('listaSugestoes');
     const btnLimpar = document.getElementById('btnLimpar');
