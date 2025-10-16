@@ -1,5 +1,3 @@
-// A LINHA MAIS IMPORTANTE: garante que o código abaixo só rode
-// depois que todo o HTML da página foi carregado pelo navegador.
 document.addEventListener('DOMContentLoaded', () => {
 
     // Configuração - Usa banco de dados local via API

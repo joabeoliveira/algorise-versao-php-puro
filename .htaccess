@@ -3,6 +3,7 @@
 
 # Habilita o módulo de reescrita
 RewriteEngine On
+RewriteBase /algorise-versao-php-puro/
 
 # Redireciona todas as requisições para a pasta public/ 
 # exceto se o arquivo/pasta já existir na raiz
@@ -31,7 +32,6 @@ RewriteRule ^$ public/ [L]
 </Files>
 
 # Configurações de segurança
-ServerTokens Prod
 Header always set X-Content-Type-Options nosniff
 Header always set X-Frame-Options DENY
 Header always set X-XSS-Protection "1; mode=block"

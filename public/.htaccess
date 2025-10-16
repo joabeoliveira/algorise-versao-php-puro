@@ -3,6 +3,7 @@ DirectoryIndex index.php index.html
 
 # Habilitar reescrita de URL
 RewriteEngine On
+RewriteBase /algorise-versao-php-puro/public/
 
 # Redirecionar para index.php se o arquivo/diretório não existir
 RewriteCond %{REQUEST_FILENAME} !-f

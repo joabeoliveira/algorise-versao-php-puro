@@ -273,26 +273,7 @@ class UsuarioController
             echo $view;
             
         } catch (\Exception $e) {
-            echo "<!DOCTYPE html>
-            <html>
-            <head>
-                <title>Usuários - Erro</title>
-                <meta charset='UTF-8'>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }
-                    .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; }
-                    .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }
-                </style>
-            </head>
-            <body>
-                <h1>Gerenciar Usuários</h1>
-                <div class='error'>
-                    <h3>Erro ao carregar usuários</h3>
-                    <p>Ocorreu um erro ao acessar os dados dos usuários.</p>
-                </div>
-                <a href='/dashboard' class='btn'>Voltar ao Dashboard</a>
-            </body>
-            </html>";
+            echo "<!DOCTYPE html>\n            <html>\n            <head>\n                <title>Usuários - Erro</title>\n                <meta charset='UTF-8'>\n                <style>\n                    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }\n                    .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; }\n                    .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }\n                </style>\n            </head>\n            <body>\n                <h1>Gerenciar Usuários</h1>\n                <div class='error'>\n                    <h3>Erro ao carregar usuários</h3>\n                    <p>Ocorreu um erro ao acessar os dados dos usuários.</p>\n                </div>\n                <a href='/dashboard' class='btn'>Voltar ao Dashboard</a>\n            </body>\n            </html>";
         }
     }
 

@@ -256,4 +256,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="/public/catmat-search/search.js"></script>
+<script src="/public/catmat-search/search.js?v=<?= @filemtime(__DIR__ . '/../../../public/catmat-search/search.js') ?>"></script>

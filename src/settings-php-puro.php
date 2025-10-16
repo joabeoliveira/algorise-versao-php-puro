@@ -493,7 +493,7 @@ function aplicarHeadersSeguranca(): void
                " style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com;" .
                " font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com;" .
                " img-src 'self' data: https:;" .
-               " connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://abuowxogoiqzbmnvszys.supabase.co;" .
+               " connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com;" .
                " form-action 'self';";
         header("Content-Security-Policy: " . $csp);
         header('Referrer-Policy: strict-origin-when-cross-origin');
