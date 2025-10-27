@@ -200,7 +200,7 @@ class CotacaoRapidaController
             $stmtNum->execute([$anoAtual]);
             $novoNumero = ($stmtNum->fetchColumn() ?: 0) + 1;
 
-            $stmtNota = $pdo->prepare("INSERT INTO notas_tecnicas (numero_nota, ano_nota, processo_id, cotacao_rapida_id, tipo, gerada_por) VALUES (?, ?, NULL, ?, 'COTACAO_RAPIDA', ?)");
+            $stmtNota = $pdo->prepare("INSERT INTO notas_tecnicas (numero_nota, ano_nota, processo_id, cotacao_rapida_id, tipo, gerada_por, gerada_em) VALUES (?, ?, NULL, ?, 'COTACAO_RAPIDA', ?, NOW())");
             $stmtNota->execute([$novoNumero, $anoAtual, $cotacaoRapidaId, $responsavel]); // Salva o nome correto
             $notaId = $pdo->lastInsertId();
 

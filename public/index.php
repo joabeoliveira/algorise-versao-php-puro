@@ -8,6 +8,8 @@
 require __DIR__ . '/../vendor/autoload.php';
 $settings = require __DIR__ . '/../src/settings-php-puro.php';
 
+require __DIR__ . '/../src/Core/helpers.php';
+
 // Função para garantir que o usuário admin existe
 function garantirUsuarioAdmin() {
     try {
@@ -214,6 +216,8 @@ $router->get('/api/fornecedores/ramos-atividade', [FornecedorController::class, 
 $router->get('/api/fornecedores/por-ramo', [FornecedorController::class, 'listarPorRamo']);
 $router->post('/api/cotacao-rapida/buscar', [CotacaoRapidaController::class, 'buscarPrecos']);
 $router->post('/api/cotacao-rapida/salvar-relatorio', [CotacaoRapidaController::class, 'salvarAnalise']);
+$router->get('/relatorios/nota-tecnica-rapida', [RelatorioController::class, 'gerarRelatorioCotacaoRapida']);
+
 
 // APIs para busca CATMAT
 $router->post('/api/catmat/pesquisar', [CatmatController::class, 'pesquisar']);

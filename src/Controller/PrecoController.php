@@ -29,7 +29,7 @@ class PrecoController
                 return;
             }
 
-            $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ? ORDER BY criado_em DESC");
+            $stmtPrecos = $pdo->prepare("SELECT * FROM precos_coletados WHERE item_id = ?");
             $stmtPrecos->execute([$item_id]);
             $precos = $stmtPrecos->fetchAll();
 
@@ -308,37 +308,28 @@ class PrecoController
      */
     public function enviarSolicitacaoLote($params = [])
     {
-        // Log de entrada no método
-        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - MÉTODO CHAMADO: enviarSolicitacaoLote\n", FILE_APPEND);
-        
-        // Debug - desligar exibição de erros HTML
+        // Log de entrada
+        error_log("MÉTODO CHAMADO: enviarSolicitacaoLote");
         ini_set('display_errors', 0);
-        
+
         $processo_id = $params['processo_id'] ?? 0;
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
 
-        // Debug temporário
-        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - Dados recebidos: " . json_encode($dados) . "\n", FILE_APPEND);
-        file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'não definido') . "\n", FILE_APPEND);
+        error_log("Dados recebidos: " . json_encode($dados));
 
-            $itemIds = $dados['item_ids'] ?? [];
-            $fornecedorIds = $dados['fornecedor_ids'] ?? [];
-            $prazoDias = (int)($dados['prazo_dias'] ?? 5);
-            $condicoesContratuais = $dados['condicoes_contratuais'] ?? '';
-            $justificativaFornecedores = $dados['justificativa_fornecedores'] ?? '';
+        $itemIds = $dados['item_ids'] ?? [];
+        $fornecedorIds = $dados['fornecedor_ids'] ?? [];
+        $prazoDias = (int)($dados['prazo_dias'] ?? 5);
+        $condicoesContratuais = $dados['condicoes_contratuais'] ?? '';
+        $justificativaFornecedores = $dados['justificativa_fornecedores'] ?? '';
 
-            if (empty($itemIds) || empty($fornecedorIds) || empty($justificativaFornecedores)) {
-                \Joabe\Buscaprecos\Core\Router::json([
-                    'status' => 'error', 
-                    'message' => 'É necessário selecionar itens, fornecedores e preencher a justificativa.',
-                    'debug' => [
-                        'itemIds' => $itemIds,
-                        'fornecedorIds' => $fornecedorIds,
-                        'justificativa' => $justificativaFornecedores
-                    ]
-                ], 400);
-                return;
-            }
+        if (empty($itemIds) || empty($fornecedorIds) || empty($justificativaFornecedores)) {
+            \Joabe\Buscaprecos\Core\Router::json([
+                'status' => 'error',
+                'message' => 'É necessário selecionar itens, fornecedores e preencher a justificativa.'
+            ], 400);
+            return;
+        }
 
         $pdo = \getDbConnection();
 
@@ -369,24 +360,31 @@ class PrecoController
             $listaFornecedores = $this->getDadosFornecedores($pdo, $fornecedorIds);
             $itensHtml = $this->getItensHtml($pdo, $itemIds);
             $errosEnvio = [];
-            $blocoCondicoes = '';
-            if (!empty($condicoesContratuais)) {
-                $blocoCondicoes = "<hr><p><strong>Condições da Contratação:</strong></p><p style=\"white-space: pre-wrap;\">" . htmlspecialchars($condicoesContratuais) . "</p><hr>";
-            }
+            
+            $blocoCondicoes = !empty($condicoesContratuais)
+                ? "<hr><p><strong>Condições da Contratação:</strong></p><p style=\"white-space: pre-wrap;\">" . htmlspecialchars($condicoesContratuais) . "</p><hr>"
+                : '';
 
             foreach ($listaFornecedores as $fornecedor) {
+                // --- INÍCIO DA CORREÇÃO ---
+                // Valida o e-mail do fornecedor antes de tentar o envio
+                if (empty($fornecedor['email']) || !filter_var($fornecedor['email'], FILTER_VALIDATE_EMAIL)) {
+                    $erroDetalhado = "Fornecedor '{$fornecedor['razao_social']}' (ID: {$fornecedor['id']}) está com e-mail inválido ou em branco.";
+                    error_log($erroDetalhado);
+                    $errosEnvio[] = $erroDetalhado;
+                    continue; // Pula para o próximo fornecedor
+                }
+                // --- FIM DA CORREÇÃO ---
+
                 $tokenUnico = $tokensPorFornecedorId[$fornecedor['id']];
-                $linkResposta = "http://{$_SERVER['HTTP_HOST']}/cotacao/responder?token={$tokenUnico}";
+                $linkResposta = "https://{$_SERVER['HTTP_HOST']}/cotacao/responder?token={$tokenUnico}";
                 
                 $mail = new PHPMailer(true);
                 try {
-                    // Log das configurações de email
                     $host = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
                     $username = $_ENV['MAIL_USERNAME'] ?? '';
                     $password = $_ENV['MAIL_PASSWORD'] ?? '';
                     $port = $_ENV['MAIL_PORT'] ?? 587;
-                    
-                    file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - CONFIG EMAIL - Host: {$host}, User: {$username}, Port: {$port}, Password: " . (empty($password) ? 'VAZIO' : 'DEFINIDA') . "\n", FILE_APPEND);
                     
                     $mail->isSMTP();
                     $mail->Host       = $host;
@@ -402,36 +400,46 @@ class PrecoController
                     $mail->Subject = 'Solicitação de Cotação de Preços';
                     $mail->Body = "<h1>Solicitação de Cotação</h1><p>Prezado(a) Fornecedor(a) <strong>" . htmlspecialchars($fornecedor['razao_social']) . "</strong>,</p><p>Estamos realizando uma pesquisa de preços para os seguintes itens:</p>{$itensHtml}{$blocoCondicoes}<p>Para nos enviar sua proposta, por favor, acesse o seu link exclusivo abaixo. O prazo para resposta é até o dia <strong>" . date('d/m/Y', strtotime($prazoFinal)) . "</strong>.</p><p style=\"text-align:center; margin: 20px 0;\"><a href='{$linkResposta}' style='padding: 12px 20px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; font-size: 16px;'>Clique Aqui para Cotar</a></p><p>Se não for possível clicar no botão, copie e cole o link a seguir no seu navegador: {$linkResposta}</p><p>Atenciosamente,<br>Equipe de Cotações</p>";
                     $mail->AltBody = "Para cotar os itens, por favor, copie e cole o seguinte link no seu navegador: {$linkResposta}";
+                    
                     $mail->send();
+
                 } catch (Exception $e) {
-                    $erroDetalhado = "Não foi possível enviar para {$fornecedor['email']}. Erro PHPMailer: {$e->getMessage()} | ErrorInfo: {$mail->ErrorInfo}";
+                    $erroDetalhado = "Não foi possível enviar para {$fornecedor['email']}. Erro: {$mail->ErrorInfo}";
                     error_log("Erro ao enviar e-mail: " . $erroDetalhado);
                     $errosEnvio[] = $erroDetalhado;
-                    file_put_contents(__DIR__ . '/../../debug.log', date('Y-m-d H:i:s') . " - ERRO EMAIL: " . $erroDetalhado . "\n", FILE_APPEND);
                 }
             }
 
+            // --- INÍCIO DA CORREÇÃO ---
+            // Verifica se houve erros e desfaz a transação se necessário
             if (!empty($errosEnvio)) {
+                $pdo->rollBack(); // Desfaz as inserções no banco
                 \Joabe\Buscaprecos\Core\Router::json([
-                    'status' => 'warning', 
-                    'message' => 'Solicitações salvas, mas alguns e-mails não puderam ser enviados.', 
+                    'status' => 'warning',
+                    // Mensagem mais clara para o usuário
+                    'message' => 'Nenhuma solicitação foi salva pois um ou mais e-mails de fornecedores são inválidos ou falharam no envio.',
                     'details' => $errosEnvio
                 ]);
                 return;
             }
-            $pdo->commit();
+            // --- FIM DA CORREÇÃO ---
+
+            $pdo->commit(); // Confirma a transação apenas se todos os e-mails foram enviados
+
         } catch (\Exception $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log("Erro ao enviar solicitação em lote: " . $e->getMessage());
             \Joabe\Buscaprecos\Core\Router::json([
-                'status' => 'error', 
-                'message' => 'Falha ao processar a solicitação. Detalhe: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => 'Falha grave ao processar a solicitação: ' . $e->getMessage()
             ], 500);
             return;
         }
 
         \Joabe\Buscaprecos\Core\Router::json([
-            'status' => 'success', 
+            'status' => 'success',
             'message' => 'Solicitações enviadas com sucesso!'
         ]);
     }

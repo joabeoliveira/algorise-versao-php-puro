@@ -1,0 +1,1082 @@
+[
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "id_catmat",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "codigo_do_grupo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "nome_do_grupo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "codigo_da_classe",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "nome_da_classe",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "codigo_do_pdm",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "nome_do_pdm",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "codigo_do_item",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "descricao_do_item",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "catmat",
+    "COLUMN_NAME": "codigo_ncm",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "chave",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "valor",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "descricao",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "categoria",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "geral",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "tipo",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "string",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "obrigatorio",
+    "DATA_TYPE": "tinyint",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "0",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "criado_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "configuracoes",
+    "COLUMN_NAME": "atualizado_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas",
+    "COLUMN_NAME": "titulo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas",
+    "COLUMN_NAME": "criada_por",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas",
+    "COLUMN_NAME": "criada_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "cotacao_rapida_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "catmat_catser",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "descricao_pesquisa",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "quantidade",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_itens",
+    "COLUMN_NAME": "estatisticas_json",
+    "DATA_TYPE": "json",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "cotacao_rapida_item_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "fonte_pesquisa",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "fornecedor_nome",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "data_resultado",
+    "DATA_TYPE": "date",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "preco_unitario",
+    "DATA_TYPE": "decimal",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "considerado",
+    "DATA_TYPE": "tinyint",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "1",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "cotacoes_rapidas_precos",
+    "COLUMN_NAME": "justificativa_descarte",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "razao_social",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "cnpj",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "email",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "endereco",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "telefone",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "ramo_atividade",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "COLUMN_NAME": "ativo",
+    "DATA_TYPE": "tinyint",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "1",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "processo_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "numero_item",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "catmat_catser",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "descricao",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "unidade_medida",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "quantidade",
+    "DATA_TYPE": "decimal",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "valor_estimado",
+    "DATA_TYPE": "decimal",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "itens",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "nivel",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "info",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "mensagem",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "contexto",
+    "DATA_TYPE": "json",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "usuario_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "ip_address",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "user_agent",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "logs_sistema",
+    "COLUMN_NAME": "criado_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "processo_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "prazo_final",
+    "DATA_TYPE": "date",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "justificativa_fornecedores",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "condicoes_contratuais",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "lote_solicitacao_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "fornecedor_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "token",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "status",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "pendente",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "data_resposta",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_fornecedores",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_itens",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_itens",
+    "COLUMN_NAME": "lote_solicitacao_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_itens",
+    "COLUMN_NAME": "item_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "lotes_solicitacao_itens",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "processo_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "numero_nota",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "ano_nota",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "tipo",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "processo",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "cotacao_rapida_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "gerada_por",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "notas_tecnicas",
+    "COLUMN_NAME": "gerada_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "item_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "fornecedor_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "fonte_pesquisa",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "cotacao_direta",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "valor",
+    "DATA_TYPE": "decimal",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "unidade_fornecida",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "data_cotacao",
+    "DATA_TYPE": "date",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "observacoes",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "desconsiderado",
+    "DATA_TYPE": "tinyint",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "justificativa_descarte",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "11"
+  },
+  {
+    "TABLE_NAME": "precos",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "12"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "numero_processo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "orgao",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "nome_processo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "tipo_contratacao",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "pregao_eletronico",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "status",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "planejamento",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "agente_responsavel",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "agente_matricula",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "uasg",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "regiao",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "data_criacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "11"
+  },
+  {
+    "TABLE_NAME": "processos",
+    "COLUMN_NAME": "data_atualizacao",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "12"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "processo_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "fornecedor_id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "status",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "pendente",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "data_envio",
+    "DATA_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "prazo_resposta",
+    "DATA_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "proposta_anexo",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "observacoes",
+    "DATA_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "8"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "criada_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "9"
+  },
+  {
+    "TABLE_NAME": "solicitacoes_cotacao",
+    "COLUMN_NAME": "atualizada_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "10"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "id",
+    "DATA_TYPE": "int",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "1"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "nome",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "2"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "email",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "3"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "senha",
+    "DATA_TYPE": "varchar",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "",
+    "ORDINAL_POSITION": "4"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "role",
+    "DATA_TYPE": "enum",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "usuario",
+    "ORDINAL_POSITION": "5"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "ativo",
+    "DATA_TYPE": "tinyint",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "ORDINAL_POSITION": "6"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "criado_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "7"
+  },
+  {
+    "TABLE_NAME": "usuarios",
+    "COLUMN_NAME": "atualizado_em",
+    "DATA_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "ORDINAL_POSITION": "8"
+  }
+]

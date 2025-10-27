@@ -20,6 +20,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let resultadosGlobais = {}; 
 
+    // --- LÓGICA PARA BUSCA DE DESCRIÇÃO DO CATMAT ---
+    let catmatTimeout;
+    itensContainer.addEventListener('input', (event) => {
+        if (!event.target.classList.contains('catmat-input')) {
+            return;
+        }
+
+        clearTimeout(catmatTimeout);
+        const catmatInput = event.target;
+
+        if (catmatInput.value.trim().length < 3) {
+            const itemRow = catmatInput.closest('.item-row');
+            if(itemRow) itemRow.querySelector('.descricao-input').value = '';
+            return;
+        }
+
+        catmatTimeout = setTimeout(() => {
+            buscarDescricao(catmatInput);
+        }, 500);
+    });
+
+    const buscarDescricao = async (catmatInput) => {
+        const catmatValue = catmatInput.value.trim();
+        const itemRow = catmatInput.closest('.item-row');
+        const descricaoInput = itemRow.querySelector('.descricao-input');
+
+        descricaoInput.value = 'Buscando...';
+
+        try {
+            const response = await fetch('/api/catmat/pesquisar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: catmatValue })
+            });
+            const result = await response.json();
+
+            if (result.success && result.data.results.length > 0) {
+                const itemExato = result.data.results.find(item => item.catmat === catmatValue);
+                descricaoInput.value = itemExato ? itemExato.descricao : result.data.results[0].descricao;
+            } else {
+                descricaoInput.value = 'Código não encontrado';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar descrição do CATMAT:', error);
+            descricaoInput.value = 'Erro na busca';
+        }
+    };
+
     // --- LÓGICA PARA ADICIONAR/REMOVER LINHAS DE ITENS ---
     btnAdicionarItem.addEventListener('click', () => {
         const primeiraLinha = itensContainer.querySelector('.item-row');
@@ -209,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Erro ao salvar: ' + error.message);
         } finally {
             btnSalvarRelatorio.disabled = false;
-            btnSalvarRelatorio.innerHTML = '<i class="bi bi-check-circle-fill"></i> Salvar e Gerar PDF';
+            btnSalvarRelatorio.innerHTML = '<i class="bi bi-check-circle-fill"></i> Salvar e Visualizar Relatório';
         }
     });
 

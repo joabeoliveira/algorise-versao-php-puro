@@ -71,6 +71,11 @@ function getDbConnection(): PDO
         PDO::ATTR_EMULATE_PREPARES   => false,
     ];
 
+    // Habilita LOCAL INFILE apenas em ambiente de desenvolvimento por segurança
+    if (isDevelopment()) {
+        $options[PDO::MYSQL_ATTR_LOCAL_INFILE] = true;
+    }
+
     try {
         if (isAppEngine()) {
             // Google App Engine - usar Cloud SQL via Unix Socket

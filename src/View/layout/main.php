@@ -473,7 +473,7 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase removido - agora usa banco de dados local -->
     <script src="/js/dashboard.js"></script>
-    <script src="/catmat-search/search.js"></script>
+    <script src="/js/search.js"></script>
     <script src="/js/pesquisa-precos.js"></script>
     <script src="/js/analise-precos.js"></script>
     <script src="/js/pesquisa-orgaos.js"></script>

@@ -64,7 +64,7 @@ class CatmatController
                 }
                 
                 $sql = "SELECT 
-                            codigo_do_item as codigo_catmat,
+                            codigo_do_item as catmat,
                             descricao_do_item as descricao
                         FROM catmat
                         WHERE " . implode(' AND ', $whereClauses) . "
@@ -83,7 +83,7 @@ class CatmatController
                 
                 // Tenta FULLTEXT primeiro (mais rápido)
                 $sql = "SELECT 
-                            codigo_do_item as codigo_catmat,
+                            codigo_do_item as catmat,
                             descricao_do_item as descricao,
                             MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE) as relevancia
                         FROM catmat
@@ -99,7 +99,7 @@ class CatmatController
                 if (empty($data)) {
                     error_log("FULLTEXT vazio, usando LIKE fallback");
                     $sql = "SELECT 
-                                codigo_do_item as codigo_catmat,
+                                codigo_do_item as catmat,
                                 descricao_do_item as descricao
                             FROM catmat
                             WHERE descricao_do_item LIKE ?
@@ -124,7 +124,7 @@ class CatmatController
             $results = [];
             foreach ($data as $item) {
                 $results[] = [
-                    'catmat' => $item['codigo_catmat'],
+                    'catmat' => $item['catmat'],
                     'descricao' => $item['descricao'],
                     'relevancia' => $item['relevancia'] ?? 85
                 ];
@@ -173,7 +173,7 @@ class CatmatController
             
             // Usa FULLTEXT para melhor performance
             $sql = "SELECT 
-                        codigo_do_item as codigo_catmat,
+                        codigo_do_item as catmat,
                         descricao_do_item as descricao
                     FROM catmat
                     WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
@@ -186,7 +186,7 @@ class CatmatController
             // Fallback para LIKE se FULLTEXT não retornar resultados
             if (empty($data)) {
                 $sql = "SELECT 
-                            codigo_do_item as codigo_catmat,
+                            codigo_do_item as catmat,
                             descricao_do_item as descricao
                         FROM catmat
                         WHERE descricao_do_item LIKE ?
@@ -202,7 +202,7 @@ class CatmatController
                 $sugestoes = [];
                 foreach ($data as $item) {
                     $sugestoes[] = [
-                        'texto' => $item['codigo_catmat'] . ' - ' . substr($item['descricao'], 0, 80) . '...',
+                        'texto' => $item['catmat'] . ' - ' . substr($item['descricao'], 0, 80) . '...',
                         'tipo' => 'CATMAT'
                     ];
                 }
@@ -390,8 +390,8 @@ class CatmatController
         
         try {
             // Tenta FULLTEXT primeiro
-            $sql = "SELECT 
-                        codigo_do_item,
+                $sql = "SELECT 
+                        codigo_do_item as catmat,
                         descricao_do_item as descricao
                     FROM catmat
                     WHERE MATCH(descricao_do_item) AGAINST(? IN NATURAL LANGUAGE MODE)
@@ -404,7 +404,7 @@ class CatmatController
             // Fallback para LIKE se necessário
             if (empty($data)) {
                 $sql = "SELECT 
-                            codigo_do_item,
+                            codigo_do_item as catmat,
                             descricao_do_item as descricao
                         FROM catmat
                         WHERE descricao_do_item LIKE ?
@@ -413,9 +413,7 @@ class CatmatController
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute(["%{$termoPrincipal}%", $limit]);
                 $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            }
-            
-            if (!$data || !is_array($data)) {
+            }            if (!$data || !is_array($data)) {
                 error_log("Nenhum resultado encontrado no banco");
                 return [];
             }
@@ -424,7 +422,7 @@ class CatmatController
             $resultados = [];
             foreach ($data as $item) {
                 $resultados[] = [
-                    'catmat' => $item['codigo_catmat'] ?? '',
+                    'catmat' => $item['catmat'] ?? '',
                     'descricao' => $item['descricao'] ?? '',
                     'material' => $this->extrairMaterial($item['descricao'] ?? ''),
                     'categoria' => $this->extrairCategoria($item['descricao'] ?? '')

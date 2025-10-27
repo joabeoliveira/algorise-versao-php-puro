@@ -382,33 +382,37 @@ class RelatorioController
             $nota_id = $params['nota_id'] ?? 0;
 
             $pdo = \getDbConnection();
-            $stmt = $pdo->prepare("
-                SELECT nt.*, p.nome_processo, p.numero_processo
-                FROM notas_tecnicas nt
-                JOIN processos p ON nt.processo_id = p.id
-                WHERE nt.id = ?
-            ");
+            // Busca a nota e o seu TIPO
+            $stmt = $pdo->prepare("SELECT id, processo_id, cotacao_rapida_id, tipo FROM notas_tecnicas WHERE id = ?");
             $stmt->execute([$nota_id]);
             $nota = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$nota) {
                 $_SESSION['flash_error'] = 'Relatório não encontrado.';
-                header("Location: /relatorios");
-                exit;
+                Router::redirect('/relatorios');
+                return;
             }
 
-            // Redireciona para regenerar o relatório usando os dados da nota existente
-            $redirectUrl = "/processos/{$nota['processo_id']}/relatorio?nota_id={$nota_id}";
-            header("Location: {$redirectUrl}");
-            exit;
+            // Redireciona com base no tipo da nota
+            $redirectUrl = '/relatorios'; // URL padrão de fallback
+
+            if ($nota['tipo'] === 'PROCESSO' && !empty($nota['processo_id'])) {
+                // Se for de PROCESSO, redireciona para a rota de relatório de processo
+                $redirectUrl = "/processos/{$nota['processo_id']}/relatorio?nota_id={$nota_id}";
+            } elseif ($nota['tipo'] === 'COTACAO_RAPIDA' && !empty($nota['cotacao_rapida_id'])) {
+                // Se for de COTAÇÃO RÁPIDA, redireciona para a nova rota
+                $redirectUrl = "/relatorios/nota-tecnica-rapida?id={$nota_id}";
+            }
+
+            Router::redirect($redirectUrl);
+
         } catch (\Exception $e) {
             error_log("Erro ao visualizar relatório: " . $e->getMessage());
             if (function_exists('logarEvento')) {
                 logarEvento('error', 'Erro ao visualizar relatório: ' . $e->getMessage(), ['nota_id' => $params['nota_id'] ?? 0]);
             }
             $_SESSION['flash_error'] = 'Ocorreu um erro ao tentar visualizar o relatório.';
-            header("Location: /relatorios");
-            exit;
+            Router::redirect('/relatorios');
         }
     }
 
@@ -447,5 +451,160 @@ class RelatorioController
         
         $html .= '</table>';
         return $html;
+    }
+
+    public function gerarRelatorioCotacaoRapida($params = [])
+    {
+        try {
+            $queryParams = Router::getQueryData();
+            $nota_id = $queryParams['id'] ?? 0;
+    
+            if (!$nota_id) {
+                throw new \Exception("ID da nota técnica não fornecido.");
+            }
+    
+            $pdo = \getDbConnection();
+    
+            // 1. Buscar dados da Nota Técnica e da Cotação Rápida
+            $stmtNota = $pdo->prepare("
+                SELECT 
+                    nt.id, nt.numero_nota, nt.ano_nota, nt.gerada_por, nt.gerada_em,
+                    cr.titulo as cotacao_titulo, cr.criada_em as cotacao_criada_em
+                FROM notas_tecnicas nt
+                JOIN cotacoes_rapidas cr ON nt.cotacao_rapida_id = cr.id
+                WHERE nt.id = ? AND nt.tipo = 'COTACAO_RAPIDA'
+            ");
+            $stmtNota->execute([$nota_id]);
+            $nota = $stmtNota->fetch(\PDO::FETCH_ASSOC);
+    
+            if (!$nota) {
+                throw new \Exception("Nota técnica de cotação rápida não encontrada.");
+            }
+    
+            // 2. Buscar Itens e Preços associados
+            $stmtItens = $pdo->prepare("
+                SELECT 
+                    cri.id, cri.catmat_catser, cri.descricao_pesquisa, cri.quantidade, cri.estatisticas_json
+                FROM cotacoes_rapidas_itens cri
+                WHERE cri.cotacao_rapida_id = (SELECT cotacao_rapida_id FROM notas_tecnicas WHERE id = ?)
+            ");
+            $stmtItens->execute([$nota_id]);
+            $itens = $stmtItens->fetchAll(\PDO::FETCH_ASSOC);
+    
+            foreach ($itens as &$item) {
+                $stmtPrecos = $pdo->prepare("
+                    SELECT * FROM cotacoes_rapidas_precos
+                    WHERE cotacao_rapida_item_id = ? AND considerado = 1
+                    ORDER BY preco_unitario ASC
+                ");
+                $stmtPrecos->execute([$item['id']]);
+                $item['precos'] = $stmtPrecos->fetchAll(\PDO::FETCH_ASSOC);
+            }
+    
+            // 3. Montar a estrutura do relatório (similar ao gerarRelatorio)
+            $configsEmpresa = ConfiguracaoController::getConfiguracoesPorCategoria('empresa');
+            $configsInterface = ConfiguracaoController::getConfiguracoesPorCategoria('interface');
+    
+            $dadosRelatorio = [
+                'title' => "Nota Técnica de Pesquisa de Preços Nº {$nota['numero_nota']}/{$nota['ano_nota']}",
+                'subtitle' => "Referente a: {$nota['cotacao_titulo']}",
+                'header' => true,
+                'sections' => [],
+                'empresa' => [
+                    'nome' => $configsEmpresa['empresa_nome'] ?? 'Empresa',
+                    'logo_path' => $configsInterface['interface_logo_path'] ?? null
+                ]
+            ];
+    
+            // Seção 1: Objeto
+            $dadosRelatorio['sections'][] = [
+                'title' => '1. OBJETO',
+                'content' => "<p>A presente nota técnica visa registrar a pesquisa de preços para a aquisição de bens/serviços, conforme descrito no título: <strong>{$nota['cotacao_titulo']}</strong>.</p>"
+            ];
+    
+            // Seção 2: Metodologia
+            $dadosRelatorio['sections'][] = [
+                'title' => '2. METODOLOGIA',
+                'content' => "<p>A pesquisa de preços foi realizada utilizando os parâmetros da Instrução Normativa SEGES/ME Nº 65, de 7 de julho de 2021, com foco nos incisos I e II do art. 5º, que correspondem a preços do Painel de Preços e contratações similares de outros entes públicos.</p>"
+            ];
+    
+            // Seção 3: Detalhamento por Item
+            foreach ($itens as $index => $item) {
+                $conteudoItem = "
+                    <h4>Item " . ($index + 1) . ": {$item['descricao_pesquisa']}</h4>
+                    <p><strong>Código CATMAT/CATSER:</strong> {$item['catmat_catser']}</p>
+                    <p><strong>Quantidade:</strong> {$item['quantidade']}</p>
+                ";
+    
+                if (!empty($item['precos'])) {
+                    $tabelaPrecos = [
+                        'headers' => ['Fonte', 'Origem (UASG/Fornecedor)', 'Data', 'Valor Unitário'],
+                        'data' => []
+                    ];
+                    foreach ($item['precos'] as $preco) {
+                        $tabelaPrecos['data'][] = [
+                            $preco['fonte_pesquisa'],
+                            $preco['fornecedor_nome'],
+                            formatarData($preco['data_resultado']),
+                            formatarMoeda($preco['preco_unitario'])
+                        ];
+                    }
+                    $conteudoItem .= self::generateTableHtml($tabelaPrecos);
+    
+                    // Análise de preços
+                    $estatisticas = json_decode($item['estatisticas_json'], true);
+                    if ($estatisticas && $estatisticas['total'] > 0) {
+                        $conteudoItem .= "
+                            <div class='info'>
+                                <h5>Análise Estatística:</h5>
+                                <p>Menor preço: " . formatarMoeda($estatisticas['minimo']) . "</p>
+                                <p>Maior preço: " . formatarMoeda($estatisticas['maximo']) . "</p>
+                                <p>Preço médio: " . formatarMoeda($estatisticas['media']) . "</p>
+                                <p>Mediana: " . formatarMoeda($estatisticas['mediana']) . "</p>
+                            </div>
+                        ";
+                    }
+                } else {
+                    $conteudoItem .= "<p><em>Nenhuma cotação considerada para este item.</em></p>";
+                }
+    
+                $dadosRelatorio['sections'][] = [
+                    'title' => '',
+                    'content' => $conteudoItem
+                ];
+            }
+    
+            // Seção 4: Conclusão
+            $dadosRelatorio['sections'][] = [
+                'title' => '3. CONCLUSÃO',
+                'content' => "<p>Com base nos dados coletados, os preços de referência para os itens são considerados adequados e conformes com os valores de mercado, servindo como base para a estimativa de valor da futura contratação.</p>"
+            ];
+    
+            // Rodapé
+            $dataGeracao = !empty($nota['gerada_em']) ? formatarDataHora(strtotime($nota['gerada_em'])) : 'Data não registrada';
+            $dadosRelatorio['footer'] = "
+                <div class='signature-block'>
+                    <div class='signature-line'>
+                        {$nota['gerada_por']}<br>
+                        Agente Responsável pela Pesquisa
+                    </div>
+                </div>
+                <p class='small text-center'>
+                    Documento gerado automaticamente pelo Sistema Algorise em {$dataGeracao}
+                </p>
+            ";
+    
+            // 4. Gerar e exibir o PDF
+            $pdf = Pdf::createReport($dadosRelatorio);
+            $htmlFinal = $pdf->render();
+    
+            header('Content-Type: text/html; charset=UTF-8');
+            echo $htmlFinal;
+    
+        } catch (\Exception $e) {
+            error_log("Erro ao gerar relatório de cotação rápida: " . $e->getMessage());
+            $_SESSION['flash_error'] = 'Ocorreu um erro ao gerar o relatório: ' . $e->getMessage();
+            Router::redirect('/dashboard');
+        }
     }
 }
