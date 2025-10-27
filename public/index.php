@@ -111,6 +111,11 @@ $router->get('/teste-crud', function() {
     require __DIR__ . '/teste-crud.php';
 });
 
+// Rota de Diagnóstico Temporária
+$router->get('/diagnostic', function() {
+    require __DIR__ . '/diagnostic.php';
+});
+
 // Login
 $router->get('/login', function() {
     $controller = new UsuarioController();

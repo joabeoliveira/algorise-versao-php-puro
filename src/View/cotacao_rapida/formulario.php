@@ -115,7 +115,7 @@
                 </div>
                 <div class="col-md-4 text-end">
                     <button type="button" class="btn btn-success btn-lg" id="btnSalvarRelatorio">
-                        <i class="bi bi-check-circle-fill"></i> Salvar e Gerar PDF
+                        <i class="bi bi-check-circle-fill"></i> Salvar e Visualizar PDF
                     </button>
                 </div>
             </div>

@@ -3,7 +3,6 @@
 *~
 *.py[co]
 .*/RCS/*
-.*
 node_modules/
 storage/logs/*
 tests/

@@ -602,9 +602,22 @@ class RelatorioController
             echo $htmlFinal;
     
         } catch (\Exception $e) {
-            error_log("Erro ao gerar relatório de cotação rápida: " . $e->getMessage());
-            $_SESSION['flash_error'] = 'Ocorreu um erro ao gerar o relatório: ' . $e->getMessage();
-            Router::redirect('/dashboard');
+            // error_log("Erro ao gerar relatório de cotação rápida: " . $e->getMessage());
+            // $_SESSION['flash_error'] = 'Ocorreu um erro ao gerar o relatório: ' . $e->getMessage();
+            
+            // COMENTE O REDIRECIONAMENTO:
+            // Router::redirect('/dashboard'); 
+
+            // E AGORA, IMPRIMA O ERRO DIRETAMENTE NA TELA:
+            echo "<h1>Erro Fatal ao Renderizar Relatório</h1>";
+            echo "<p>A página não pôde ser exibida pelo seguinte motivo:</p>";
+            echo "<pre style='background: #f0f0f0; border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>";
+            echo "<strong>Mensagem:</strong> " . htmlspecialchars($e->getMessage()) . "\n\n";
+            echo "<strong>Arquivo:</strong> " . $e->getFile() . "\n";
+            echo "<strong>Linha:</strong> " . $e->getLine() . "\n\n";
+            echo "<strong>Stack Trace:</strong>\n" . htmlspecialchars($e->getTraceAsString());
+            echo "</pre>";
+            exit; // Para a execução aqui para que o erro seja visível
         }
     }
 }
