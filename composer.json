@@ -4,10 +4,13 @@
     "license": "proprietary",
     "type": "project",
     "autoload": {
+    "files": [
+        "src/Core/helpers.php"
+        ],
         "psr-4": {
             "Joabe\\Buscaprecos\\": "src/"
         }
-    },
+    },  
     "authors": [
         {
             "name": "Joabe Oliveira"
