@@ -387,21 +387,29 @@ class RelatorioController
             $stmt->execute([$nota_id]);
             $nota = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+            // Log para debug
+            error_log("DEBUG visualizar() - nota_id: {$nota_id}, dados: " . json_encode($nota));
+
             if (!$nota) {
                 $_SESSION['flash_error'] = 'Relatório não encontrado.';
                 Router::redirect('/relatorios');
                 return;
             }
 
-            // Redireciona com base no tipo da nota
+            // Redireciona com base no tipo da nota (case-insensitive)
             $redirectUrl = '/relatorios'; // URL padrão de fallback
+            $tipoNormalizado = strtoupper($nota['tipo'] ?? '');
 
-            if ($nota['tipo'] === 'PROCESSO' && !empty($nota['processo_id'])) {
+            if ($tipoNormalizado === 'PROCESSO' && !empty($nota['processo_id'])) {
                 // Se for de PROCESSO, redireciona para a rota de relatório de processo
                 $redirectUrl = "/processos/{$nota['processo_id']}/relatorio?nota_id={$nota_id}";
-            } elseif ($nota['tipo'] === 'COTACAO_RAPIDA' && !empty($nota['cotacao_rapida_id'])) {
+                error_log("DEBUG: Redirecionando para PROCESSO: {$redirectUrl}");
+            } elseif ($tipoNormalizado === 'COTACAO_RAPIDA' && !empty($nota['cotacao_rapida_id'])) {
                 // Se for de COTAÇÃO RÁPIDA, redireciona para a nova rota
                 $redirectUrl = "/relatorios/nota-tecnica-rapida?id={$nota_id}";
+                error_log("DEBUG: Redirecionando para COTACAO_RAPIDA: {$redirectUrl}");
+            } else {
+                error_log("DEBUG: Nenhuma condição atendida. tipo={$nota['tipo']}, tipoNormalizado={$tipoNormalizado}, cotacao_rapida_id={$nota['cotacao_rapida_id']}");
             }
 
             Router::redirect($redirectUrl);

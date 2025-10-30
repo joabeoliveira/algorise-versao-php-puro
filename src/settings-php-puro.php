@@ -160,36 +160,6 @@ function formatarString($string, $mascara)
 }
 
 /**
- * Formata um valor monetário
- */
-function formatarMoeda($valor): string
-{
-    return 'R$ ' . number_format((float)$valor, 2, ',', '.');
-}
-
-/**
- * Formata uma data para o padrão brasileiro
- */
-function formatarData($data): string
-{
-    if (empty($data)) return '';
-    
-    $timestamp = is_numeric($data) ? $data : strtotime($data);
-    return date('d/m/Y', $timestamp);
-}
-
-/**
- * Formata uma data e hora para o padrão brasileiro
- */
-function formatarDataHora($dataHora): string
-{
-    if (empty($dataHora)) return '';
-    
-    $timestamp = is_numeric($dataHora) ? $dataHora : strtotime($dataHora);
-    return date('d/m/Y H:i', $timestamp);
-}
-
-/**
  * Função para sanitizar entrada do usuário
  */
 function sanitizar($input): string
