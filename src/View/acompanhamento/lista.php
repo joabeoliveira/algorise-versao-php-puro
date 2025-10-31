@@ -31,7 +31,7 @@
                             $badgeClass = 'bg-secondary';
                             $statusTexto = 'Aguardando Resposta';
 
-                            if ($status === 'Respondido') {
+                            if ($status === 'respondido') {
                                 $badgeClass = 'bg-success';
                                 $statusTexto = 'Respondido em ' . date('d/m/Y', strtotime($solicitacao['data_resposta']));
                             } elseif ($hoje > $prazoFinal) {

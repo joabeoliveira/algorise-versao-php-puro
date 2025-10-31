@@ -31,7 +31,7 @@ env_variables:
   DB_SOCKET_DIR: "/cloudsql"
   
   # Storage configuration
-  STORAGE_BUCKET: "algorise-storage-algorise-producao"
+  STORAGE_BUCKET: "algorise-producao-storage"
 
   # Email configuration
   MAIL_HOST: "smtp.gmail.com"
@@ -68,6 +68,10 @@ handlers:
     
   - url: /uploads
     static_dir: public/uploads
+    secure: always
+  
+  - url: /download.php
+    script: public/download.php
     secure: always
   
   # All other requests go to index.php

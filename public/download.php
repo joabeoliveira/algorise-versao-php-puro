@@ -14,8 +14,7 @@ try {
         exit;
     }
 
-    // O nome do objeto no GCS deve ser 'propostas/nome_do_arquivo.pdf'
-    $objectName = 'propostas/' . basename($fileName);
+    $objectName = $fileName;
 
     $storage = new StorageClient();
     $bucket = $storage->bucket($bucketName);

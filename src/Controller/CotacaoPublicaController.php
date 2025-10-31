@@ -130,9 +130,12 @@ class CotacaoPublicaController
             // Faz o upload para o GCS
             $caminhoAnexo = \Joabe\Buscaprecos\Core\uploadToGCS($arquivoAnexo['tmp_name'], $gcsObjectName);
 
+            // Log para depuração
+            error_log("[CotacaoPublicaController] Caminho do anexo para salvar no banco: " . $caminhoAnexo);
+
             // 2. Atualiza o status da solicitação para 'Respondido' e salva os dados do anexo
             $sqlStatus = "UPDATE lotes_solicitacao_fornecedores 
-                        SET status = 'Respondido', data_resposta = NOW(), caminho_anexo = ?, nome_original_anexo = ?
+                        SET status = 'respondido', data_resposta = NOW(), caminho_anexo = ?, nome_original_anexo = ?
                         WHERE id = ?";
             $stmtStatus = $pdo->prepare($sqlStatus);
             $stmtStatus->execute([$caminhoAnexo, $nomeOriginalAnexo, $solicitacaoFornecedorId]);
