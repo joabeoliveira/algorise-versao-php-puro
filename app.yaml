@@ -42,7 +42,7 @@ env_variables:
 # URL handlers
 handlers:
   # Specific script handlers (MUST come before wildcard routes)
-  - url: /download.php
+  - url: /download\.php.*
     script: public/download.php
     secure: always
   
