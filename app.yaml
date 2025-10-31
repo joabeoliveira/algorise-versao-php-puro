@@ -41,6 +41,11 @@ env_variables:
 
 # URL handlers
 handlers:
+  # Specific script handlers (MUST come before wildcard routes)
+  - url: /download.php
+    script: public/download.php
+    secure: always
+  
   # Static files
   - url: /css
     static_dir: public/css
@@ -70,11 +75,7 @@ handlers:
     static_dir: public/uploads
     secure: always
   
-  - url: /download.php
-    script: public/download.php
-    secure: always
-  
-  # All other requests go to index.php
+  # All other requests go to index.php (MUST be last)
   - url: /.*
     script: public/index.php
     secure: always
