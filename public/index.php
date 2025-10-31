@@ -61,7 +61,7 @@ $router = new Router();
 // Middleware de Autenticação Global
 $router->addMiddleware(function() {
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/status', '/fix-db-schema', '/diagnostico-db', '/teste-crud'];
+    $publicRoutes = ['/login', '/esqueceu-senha', '/redefinir-senha', '/status', '/fix-db-schema', '/diagnostico-db', '/teste-crud', '/download.php'];
     $isPublic = in_array($path, $publicRoutes) || 
                 str_starts_with($path, '/cotacao/responder') || 
                 str_starts_with($path, '/download-proposta/') ||
@@ -86,6 +86,11 @@ $adminMiddleware = function() {
 // =====================================
 // ROTAS PÚBLICAS
 // =====================================
+
+// Download de PDFs do Google Cloud Storage
+$router->get('/download.php', function() {
+    require __DIR__ . '/download.php';
+});
 
 // Download de propostas 
 $router->get('/download-proposta/{nome_arquivo}', [UsuarioController::class, 'downloadProposta']);

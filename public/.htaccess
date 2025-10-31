@@ -3,7 +3,11 @@ DirectoryIndex index.php index.html
 
 # Habilitar reescrita de URL
 RewriteEngine On
-RewriteBase /algorise-versao-php-puro/public/
+RewriteBase /
+
+# Permitir acesso direto a download.php e outros arquivos PHP específicos
+RewriteRule ^download\.php$ - [L]
+RewriteRule ^status\.php$ - [L]
 
 # Redirecionar para index.php se o arquivo/diretório não existir
 RewriteCond %{REQUEST_FILENAME} !-f
