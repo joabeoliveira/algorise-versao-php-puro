@@ -11,53 +11,34 @@ class AcompanhamentoController
         try {
             $pdo = \getDbConnection();
             
-            // Verificar se as tabelas necessárias existem
             $solicitacoes = [];
             
             try {
-                // Verificar se a tabela solicitacoes_cotacao existe (estrutura mais simples)
-                $stmt = $pdo->query("SHOW TABLES LIKE 'solicitacoes_cotacao'");
-                if ($stmt->rowCount() > 0) {
-                    $sql = "SELECT 
-                                sc.id,
-                                sc.processo_id,
-                                sc.fornecedor_id,
-                                sc.status,
-                                sc.data_envio,
-                                sc.prazo_resposta,
-                                sc.data_resposta,
-                                p.nome as nome_processo,
-                                f.razao_social
-                            FROM solicitacoes_cotacao sc
-                            LEFT JOIN processos p ON sc.processo_id = p.id
-                            LEFT JOIN fornecedores f ON sc.fornecedor_id = f.id
-                            ORDER BY sc.data_envio DESC";
-                    
-                    $stmt = $pdo->query($sql);
-                    $solicitacoes = $stmt->fetchAll();
-                } else {
-                    // Fallback: usar dados de cotações rápidas se disponível
-                    $stmt = $pdo->query("SHOW TABLES LIKE 'cotacoes_rapidas'");
-                    if ($stmt->rowCount() > 0) {
-                        $sql = "SELECT 
-                                    cr.id,
-                                    cr.numero_processo as nome_processo,
-                                    cr.orgao as razao_social,
-                                    'Cotação Rápida' as status,
-                                    cr.data_criacao as data_envio,
-                                    NULL as prazo_resposta,
-                                    cr.data_atualizacao as data_resposta
-                                FROM cotacoes_rapidas cr
-                                ORDER BY cr.data_criacao DESC
-                                LIMIT 50";
-                        
-                        $stmt = $pdo->query($sql);
-                        $solicitacoes = $stmt->fetchAll();
-                    }
-                }
+                $sql = "SELECT 
+                            lsf.id,
+                            ls.processo_id,
+                            lsf.fornecedor_id,
+                            lsf.status,
+                            lsf.data_criacao as data_envio,
+                            ls.prazo_final,
+                            lsf.data_resposta,
+                            p.nome_processo,
+                            f.razao_social,
+                            lsf.caminho_anexo,
+                            lsf.nome_original_anexo
+                        FROM lotes_solicitacao_fornecedores lsf
+                        JOIN lotes_solicitacao ls ON lsf.lote_solicitacao_id = ls.id
+                        JOIN processos p ON ls.processo_id = p.id
+                        JOIN fornecedores f ON lsf.fornecedor_id = f.id
+                        ORDER BY lsf.data_criacao DESC";
+                
+                $stmt = $pdo->query($sql);
+                $solicitacoes = $stmt->fetchAll();
+
             } catch (\Exception $e) {
                 error_log("Erro na consulta de acompanhamento: " . $e->getMessage());
-                $solicitacoes = [];
+                // Deixa $solicitacoes como um array vazio para não quebrar a view
+                $solicitacoes = []; 
             }
 
             $tituloPagina = "Acompanhamento de Solicitações";

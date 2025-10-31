@@ -33,19 +33,14 @@ class CotacaoPublicaController
             JOIN lotes_solicitacao l ON lsf.lote_solicitacao_id = l.id
             JOIN processos p ON l.processo_id = p.id
             JOIN fornecedores f ON lsf.fornecedor_id = f.id
-            WHERE lsf.token = ? AND lsf.status = 'Enviado'";
+            WHERE lsf.token = ? AND lsf.status = 'pendente'";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$token]);
         $solicitacao = $stmt->fetch();
 
         if (!$solicitacao) {
-            $this->exibirPaginaDeErro("Solicitação de cotação inválida ou não encontrada.");
-            return;
-        }
-
-        if ($solicitacao['status'] === 'Respondido') {
-            $this->exibirPaginaDeErro("Esta cotação já foi respondida. Obrigado!");
+            $this->exibirPaginaDeErro("Solicitação de cotação inválida, já respondida ou expirada.");
             return;
         }
 
@@ -81,6 +76,7 @@ class CotacaoPublicaController
      */
     public function salvarResposta($params = [])
     {
+
         $dados = \Joabe\Buscaprecos\Core\Router::getPostData();
         $arquivos = $_FILES; // Pega os arquivos enviados
         $token = $dados['token'] ?? null;
@@ -98,7 +94,7 @@ class CotacaoPublicaController
         $sqlInfo = "SELECT lsf.id, lsf.fornecedor_id, f.razao_social, f.cnpj 
                     FROM lotes_solicitacao_fornecedores lsf
                     JOIN fornecedores f ON lsf.fornecedor_id = f.id
-                    WHERE lsf.token = ? AND lsf.status = 'Enviado'";
+                    WHERE lsf.token = ? AND lsf.status = 'pendente'";
         $stmtInfo = $pdo->prepare($sqlInfo);
         $stmtInfo->execute([$token]);
         $solicitacaoInfo = $stmtInfo->fetch();
@@ -117,12 +113,6 @@ class CotacaoPublicaController
             $pdo->beginTransaction();
 
             // 1. Processar e mover o arquivo de anexo
-            $diretorioUpload = __DIR__ . '/../../storage/propostas/';
-            if (!is_dir($diretorioUpload)) {
-                mkdir($diretorioUpload, 0775, true);
-            }
-
-            // Validações de segurança do arquivo
             if ($arquivoAnexo['size'] > 5 * 1024 * 1024) { // 5 MB
                 throw new \Exception("O arquivo excede o tamanho máximo de 5MB.");
             }
@@ -133,17 +123,19 @@ class CotacaoPublicaController
             $nomeOriginalAnexo = $arquivoAnexo['name'];
             $extensao = pathinfo($nomeOriginalAnexo, PATHINFO_EXTENSION);
             $nomeUnico = bin2hex(random_bytes(16)) . '.' . $extensao;
-            $caminhoAnexo = $diretorioUpload . $nomeUnico;
+            
+            // O nome do objeto no GCS incluirá o diretório de propostas
+            $gcsObjectName = 'propostas/' . $nomeUnico;
 
-            move_uploaded_file($arquivoAnexo['tmp_name'], $caminhoAnexo);
-
+            // Faz o upload para o GCS
+            $caminhoAnexo = \Joabe\Buscaprecos\Core\uploadToGCS($arquivoAnexo['tmp_name'], $gcsObjectName);
 
             // 2. Atualiza o status da solicitação para 'Respondido' e salva os dados do anexo
             $sqlStatus = "UPDATE lotes_solicitacao_fornecedores 
                         SET status = 'Respondido', data_resposta = NOW(), caminho_anexo = ?, nome_original_anexo = ?
                         WHERE id = ?";
             $stmtStatus = $pdo->prepare($sqlStatus);
-            $stmtStatus->execute([$nomeUnico, $nomeOriginalAnexo, $solicitacaoFornecedorId]);
+            $stmtStatus->execute([$caminhoAnexo, $nomeOriginalAnexo, $solicitacaoFornecedorId]);
 
             // 3. Insere os preços cotados na tabela precos_coletados (código existente)
             $sqlPreco = "INSERT INTO precos_coletados (item_id, fonte, valor, unidade_medida, data_coleta, fornecedor_nome, fornecedor_cnpj) 

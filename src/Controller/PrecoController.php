@@ -381,20 +381,22 @@ class PrecoController
                 
                 $mail = new PHPMailer(true);
                 try {
-                    $host = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
-                    $username = $_ENV['MAIL_USERNAME'] ?? '';
-                    $password = $_ENV['MAIL_PASSWORD'] ?? '';
-                    $port = $_ENV['MAIL_PORT'] ?? 587;
-                    
+                    // Busca as configurações de e-mail do banco de dados
+                    $emailConfigs = \Joabe\Buscaprecos\Controller\ConfiguracaoController::getConfiguracoesPorCategoria('email');
+
                     $mail->isSMTP();
-                    $mail->Host       = $host;
-                    $mail->SMTPAuth   = true;
-                    $mail->Username   = $username;
-                    $mail->Password   = $password;
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port       = $port;
-                    $mail->CharSet    = 'UTF-8';
-                    $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@sistema.com', $_ENV['MAIL_FROM_NAME'] ?? 'Sistema');
+                    $mail->Host       = $emailConfigs['email_smtp_host'] ?? 'smtp.gmail.com';
+                    $mail->SMTPAuth   = (bool)($emailConfigs['email_smtp_auth'] ?? true);
+                    $mail->Username   = $emailConfigs['email_smtp_username'] ?? '';
+                    $mail->Password   = $emailConfigs['email_smtp_password'] ?? '';
+                    $mail->SMTPSecure = $emailConfigs['email_smtp_security'] ?? PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = (int)($emailConfigs['email_smtp_port'] ?? 587);
+                    $mail->CharSet    = $emailConfigs['email_charset'] ?? 'UTF-8';
+                    
+                    $fromAddress = $emailConfigs['email_from_address'] ?? 'noreply@sistema.com';
+                    $fromName = $emailConfigs['email_from_name'] ?? 'Sistema Algorise';
+
+                    $mail->setFrom($fromAddress, $fromName);
                     $mail->addAddress($fornecedor['email'], $fornecedor['razao_social']);
                     $mail->isHTML(true);
                     $mail->Subject = 'Solicitação de Cotação de Preços';
