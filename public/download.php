@@ -35,7 +35,10 @@ try {
     $stream = $object->downloadAsStream();
 
     header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . basename($fileName) . '"');
+    header('Content-Disposition: attachment; filename="' . basename($fileName) . '"');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
     error_log("[GCS Download] Headers enviados, iniciando stream...");
 
