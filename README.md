@@ -239,7 +239,6 @@ docker-compose -f docker-compose.production-debug.yml up -d
 
 ## 📋 Tecnologias
 - PHP 8.2
-- Slim Framework 4
 - MySQL 8.0
 - Docker & Docker Compose
 - Nginx
