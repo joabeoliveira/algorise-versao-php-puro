@@ -4,259 +4,201 @@
 
 ## 📋 Sobre o Projeto
 
-O **Algorise AI** é um Micro SaaS desenvolvido para automatizar e otimizar processos relacionados à:
+O **Algorise AI** é um Micro SaaS desenvolvido em PHP puro para automatizar e otimizar processos relacionados a:
 
 - 🚀 Cotações rápidas e públicas
-- 📊 Gestão centralizada de processos, itens e fornecedores  
+- 📊 Gestão centralizada de processos, itens e fornecedores
 - 💰 Análise comparativa de preços
 - 📄 Geração automatizada de relatórios e notas técnicas em PDF
 - 🔐 Sistema completo de autenticação e gerenciamento de usuários
 
+Este projeto foi migrado de um microframework para uma arquitetura em PHP puro, visando maior controle, performance e flexibilidade para integração com serviços em nuvem.
+
 ## 🚀 Funcionalidades Principais
 
 ### 🎯 **Módulos do Sistema**
-- **Dashboard**: Visão geral e métricas do sistema
-- **Cotação Rápida**: Formulários para solicitação ágil de cotações
-- **Gestão de Fornecedores**: CRUD completo com importação em lote
-- **Gestão de Itens e Processos**: Controle de produtos/serviços
-- **Análise de Preços**: Comparação inteligente entre fornecedores
-- **Relatórios**: Geração de documentos em conformidade com normas
-- **Interface Pública**: Portal para submissão externa de cotações
+- **Dashboard**: Visão geral e métricas do sistema.
+- **Cotação Rápida**: Formulários para solicitação ágil de cotações.
+- **Gestão de Fornecedores**: CRUD completo com importação em lote.
+- **Gestão de Itens e Processos**: Controle de produtos/serviços.
+- **Análise de Preços**: Comparação inteligente entre fornecedores.
+- **Relatórios**: Geração de documentos em conformidade com normas.
+- **Interface Pública**: Portal para submissão externa de cotações.
 
 ### 📐 **Conformidade com Normas**
-- ✅ Integração com APIs do Governo (Painel de Preços)
-- ✅ Conformidade com IN 65/2021 (Instrução Normativa)
-- ✅ Geração automática de Notas Técnicas (Padrão AGU)
-- ✅ Validação de prazos e documentação
+- ✅ Integração com APIs do Governo (Painel de Preços).
+- ✅ Conformidade com IN 65/2021 (Instrução Normativa).
+- ✅ Geração automática de Notas Técnicas (Padrão AGU).
+- ✅ Validação de prazos e documentação.
 
 ## 🛠️ Tecnologias Utilizadas
 
 ### **Backend**
-- 🐘 **PHP 8.2+** - Linguagem principal
-- ⚡ **Slim Framework 4.14+** - Microframework para APIs
+- 🐘 **PHP 8.1+** - Linguagem principal
 - 🗄️ **MySQL 8.0** - Banco de dados relacional
 - 📦 **Composer** - Gerenciador de dependências
 
 ### **Frontend**
 - 🎨 **Bootstrap 5.3+** - Framework CSS responsivo
-- ⚡ **JavaScript Vanilla** - Interatividade nativa
-- 🎯 **Alpine.js** - Reatividade leve
+- ⚡ **JavaScript (Vanilla)** - Interatividade e requisições assíncronas
 
-### **Infraestrutura**
-- 🐳 **Docker & Docker Compose** - Containerização
+### **Infraestrutura e Cloud**
+- 🐳 **Docker & Docker Compose** - Containerização para desenvolvimento
+- ☁️ **Google Cloud Platform** - Otimizado para deploy no App Engine
+  - **Cloud Storage**: Armazenamento de arquivos.
+  - **Cloud Logging**: Logs centralizados.
+  - **Secret Manager**: Gerenciamento de segredos.
 - 🌐 **Nginx** - Servidor web
-- 🔄 **PHP-FPM** - Processamento PHP otimizado
 
 ### **Bibliotecas Principais**
 ```json
 {
-  "slim/slim": "^4.14",
-  "guzzlehttp/guzzle": "^7.9",
-  "phpmailer/phpmailer": "^6.10", 
-  "phpoffice/phpspreadsheet": "^4.3",
-  "dompdf/dompdf": "^3.1",
-  "vlucas/phpdotenv": "^5.6"
+    "phpmailer/phpmailer": "^6.11",
+    "phpoffice/phpspreadsheet": "^5.1",
+    "vlucas/phpdotenv": "^5.6",
+    "google/cloud-storage": "^1.30",
+    "google/cloud-logging": "^1.25",
+    "google/cloud-secret-manager": "^2.2"
 }
 ```
 
-## 📦 Instalação e Configuração
+## 📦 Instalação e Configuração (Ambiente de Desenvolvimento)
 
 ### **Pré-requisitos**
-- Docker & Docker Compose
-- Git
-- PHP 8.0+ (opcional, para desenvolvimento local)
-- Composer (opcional, para desenvolvimento local)
+-   [Docker](https://www.docker.com/get-started) & Docker Compose
+-   [Git](https://git-scm.com/)
+-   [Composer](https://getcomposer.org/) (Opcional, para gerenciamento de dependências fora do Docker)
 
 ### **1. Clone o repositório**
 ```bash
-git clone https://github.com/SEU_USUARIO/buscaprecos-main.git
-cd buscaprecos-main
+git clone https://github.com/SEU_USUARIO/algorise-versao-php-puro.git
+cd algorise-versao-php-puro
 ```
 
 ### **2. Configure as variáveis de ambiente**
+Copie o arquivo de exemplo `.env.example` para `.env` e ajuste as configurações do banco de dados e outras variáveis necessárias para o seu ambiente local.
 ```bash
 cp .env.example .env
-# Edite o arquivo .env com suas configurações
 ```
+As configurações detalhadas (banco de dados, email, APIs) estão documentadas dentro do próprio arquivo `.env.example`.
 
 ### **3. Inicie o ambiente com Docker**
+Para subir os contêineres (PHP, Nginx, MySQL), utilize o `docker-compose`:
 ```bash
-# Desenvolvimento
-docker-compose -f docker-compose.dev.yml up -d
-
-# Produção  
 docker-compose up -d
 ```
+Este comando irá construir as imagens e iniciar os serviços em background.
 
-### **4. Restaure o banco de dados**
+### **4. Instale as dependências PHP**
+Execute o Composer dentro do contêiner da aplicação para instalar as bibliotecas necessárias.
 ```bash
-docker cp backup_saas.sql buscaprecos-main-db-1:/backup_saas.sql
-docker exec buscaprecos-main-db-1 mysql -u root -p[SUA_SENHA] buscaprecos -e "source /backup_saas.sql"
+docker-compose exec app composer install
 ```
 
 ### **5. Acesse a aplicação**
-- **Desenvolvimento**: http://localhost:8080
-- **Produção**: Configurado via Traefik
+A aplicação estará disponível em: [http://localhost:8080](http://localhost:8080)
 
-## 🔐 Credenciais Padrão
+## 🚀 Deploy (Google Cloud Platform)
 
-### **Banco de Dados**
-- **Host**: db (interno) / localhost:3306 (externo)
-- **Database**: buscaprecos
-- **Usuário**: busca
-- **Senha**: [configurar no .env]
+A aplicação é otimizada para deploy no Google App Engine.
 
-### **Usuários do Sistema**
-- **Admin**: Definido durante a instalação
-- **Usuário**: Criado via interface administrativa
+### **1. Configuração**
+-   Certifique-se de que o arquivo `app.yaml` está configurado corretamente.
+-   Configure as variáveis de ambiente no `app.yaml` ou diretamente no serviço do App Engine.
+-   Configure os segredos (`db-password`, etc.) no Google Secret Manager.
 
-## 🚀 Comandos Úteis
-
-### **Docker**
+### **2. Deploy via Script**
+O script `deploy-gcp.sh` automatiza o processo de deploy. Ele instala as dependências de produção e envia a aplicação para o App Engine.
 ```bash
-# Iniciar containers
-docker-compose -f docker-compose.dev.yml up -d
-
-# Parar containers
-docker-compose -f docker-compose.dev.yml down
-
-# Ver logs
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Acessar container PHP
-docker exec -it buscaprecos-main-app-1 sh
-
-# Backup do banco
-docker exec db_db.1.fsj9ro7t25vgne46puzabtfxy mysqldump -u root -pbusca_password  buscaprecos > backup_$(date +%Y%m%d).sql
+./deploy-gcp.sh
 ```
-
-volume atual do db 	db_db.1.fsj9ro7t25vgne46puzabtfxy
-nome banco de dados buscaprecos
-
-senha root db root_password_123
-
-
-### **Composer (no container)**
+Como alternativa, você pode usar o comando `gcloud` diretamente:
 ```bash
-docker exec buscaprecos-main-app-1 composer install
-docker exec buscaprecos-main-app-1 composer update
+gcloud app deploy
 ```
 
 ## 🏗️ Arquitetura do Sistema
 
+A arquitetura segue um modelo simplificado, com um ponto de entrada único (`index.php`) que utiliza um roteador customizado para direcionar as requisições aos seus respectivos `Controllers`.
+
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Nginx         │    │   PHP-FPM        │    │   MySQL         │
-│   (Web Server)  │◄──►│   (Application)  │◄──►│   (Database)    │
-│   Port: 8080    │    │   Port: 9000     │    │   Port: 3306    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         ▲                        ▲                        ▲
-         │                        │                        │
-    ┌─────────┐              ┌─────────┐              ┌─────────┐
-    │ Static  │              │ Slim    │              │ PDO     │
-    │ Assets  │              │ Router  │              │ MySQL   │
-    └─────────┘              └─────────┘              └─────────┘
+Requisição HTTP
+       │
+       ▼
+┌─────────────────┐
+│   Nginx         │
+│  (Servidor Web) │
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│   PHP-FPM       │
+│ (index.php)     │
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Roteador Custom │
+│ (src/Core/Router.php)│
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│   Controllers   │
+│(src/Controller/*)│
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│   Views / Lógica│
+│(src/View/*)     │
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│   Banco de Dados│
+│ (MySQL)         │
+└─────────────────┘
 ```
 
 ## 📁 Estrutura de Diretórios
 
 ```
-buscaprecos-main/
-├── 📁 docker/              # Configurações Docker
-│   ├── nginx/             # Configuração Nginx
-│   └── php/               # Dockerfile PHP
-├── 📁 public/             # Ponto de entrada web
-│   ├── css/              # Estilos CSS
-│   ├── js/               # Scripts JavaScript
-│   └── index.php         # Front Controller
-├── 📁 src/               # Código fonte da aplicação
-│   ├── Controller/       # Controladores MVC
-│   ├── View/            # Templates PHP
-│   └── settings.php     # Configurações Slim
-├── 📄 composer.json      # Dependências PHP
-├── 📄 docker-compose.yml # Orquestração produção
-├── 📄 docker-compose.dev.yml # Ambiente desenvolvimento  
-└── 📄 backup_saas.sql   # Dump inicial do banco
+algorise-versao-php-puro/
+├── 📁 docker/              # Configurações Docker para Nginx e PHP
+├── 📁 public/             # Ponto de entrada web e assets públicos
+│   ├── css/
+│   ├── js/
+│   └── index.php         # Front Controller (ponto de entrada)
+├── 📁 src/                # Código fonte da aplicação
+│   ├── Controller/       # Controladores
+│   ├── Core/             # Classes do núcleo (Router, DB, etc.)
+│   ├── View/             # Arquivos de template (views)
+│   └── settings-php-puro.php # Configurações e helpers
+├── 📁 storage/             # Arquivos de log, cache e uploads
+├── 📄 .env.example        # Arquivo de exemplo para variáveis de ambiente
+├── 📄 app.yaml            # Configuração para deploy no Google App Engine
+├── 📄 composer.json       # Dependências PHP
+├── 📄 docker-compose.yml  # Orquestração de contêineres Docker
+└── 📄 deploy-gcp.sh      # Script de deploy para Google Cloud
 ```
 
 ## 🤝 Contribuindo
 
-1. Faça o fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📝 Licença
-
-Este projeto está sob a licença [MIT](LICENSE).
+1.  Faça o fork do projeto.
+2.  Crie uma branch para sua feature (`git checkout -b feature/NovaFuncionalidade`).
+3.  Commit suas mudanças (`git commit -m 'Adiciona NovaFuncionalidade'`).
+4.  Push para a branch (`git push origin feature/NovaFuncionalidade`).
+5.  Abra um Pull Request.
 
 ## 👨‍💻 Desenvolvedor
 
 **Joabe Oliveira**
-- Email: joabeantonio@gmail.com / joabeoliveiradev@gmail.com
+- Email: joabeantonio@gmail.com
 - LinkedIn: [Joabe Oliveira](https://linkedin.com/in/joabe-oliveira)
-
-## 🆘 Suporte
-
-Para suporte, envie um email para joabeantonio@gmail.com ou abra uma issue no GitHub.
 
 ---
 
 <div align="center">
   <p>Feito com ❤️ para otimizar processos de compras públicas</p>
-  <p>⭐ Deixe uma estrela se este projeto te ajudou!</p>
 </div>
-=======
-# Algorise AI
-
-Micro SaaS para automação de processos de cotação, análise de preços e gestão de fornecedores.
-
-## 🚀 Acesso ao Sistema
-
-### Ambiente de Produção
-- **Aplicação:** https://algorise.com.br
-- **Portainer:** https://portainer.algorise.com.br
-  - Usuário: `algoadmin`
-  - Senha: `dsfkjh3h2j%21DW`
-
-## 🛠️ Desenvolvimento
-
-### Iniciar ambiente de desenvolvimento
-```bash
-docker-compose -f docker-compose.dev.yml up -d
-```
-
-### Parar ambiente de desenvolvimento
-```bash
-docker-compose -f docker-compose.dev.yml down
-```
-
-### Debug com dados de produção
-```bash
-docker-compose -f docker-compose.production-debug.yml up -d
-```
-
-## 📋 Tecnologias
-- PHP 8.2
-- MySQL 8.0
-- Docker & Docker Compose
-- Nginx
-- Traefik (produção)
-
-## 🔧 Deploy
-1. Faça suas alterações localmente
-2. Commit e push para GitHub
-3. Acesse o Portainer em https://portainer.algorise.com.br
-4. Atualize os stacks conforme necessário
-
-## ✅ Migração PHP Puro Concluída
-
-Este projeto foi migrado do Slim Framework para **PHP puro**, mantendo todas as funcionalidades originais:
-
-- ✅ Sistema de roteamento customizado
-- ✅ Middleware de autenticação
-- ✅ Geração de PDFs com notas técnicas
-- ✅ Sistema de email SMTP
-- ✅ Chatbot integrado
-- ✅ Interface responsiva
