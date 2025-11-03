@@ -375,6 +375,20 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
     </style>
 </head>
 <body>
+
+    <!-- Cabeçalho para telas pequenas -->
+    <header class="mobile-header">
+        <button id="sidebar-toggle-btn">
+            <i class="bi bi-list"></i>
+        </button>
+        <span class="fs-5"><?= htmlspecialchars($nomeSystem) ?></span>
+        <!-- Espaço reservado para manter o título centralizado -->
+        <div style="width: 24px;"></div> 
+    </header>
+
+    <!-- Overlay para o fundo quando a sidebar estiver ativa -->
+    <div id="overlay"></div>
+
     <div class="d-flex">
         <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px;" id="sidebar">
             <a href="/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
@@ -623,6 +637,28 @@ $duracaoTransicoes = $configsInterface['interface_transicoes_duracao'] ?? '0.3';
 </script>
 
 <?php if (isset($jsExtra)) echo $jsExtra; ?>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        const overlay = document.getElementById('overlay');
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function () {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            });
+        }
+
+        if (overlay) {
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
+    });
+</script>
 
 </body>
 </html>

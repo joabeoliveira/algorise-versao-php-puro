@@ -160,3 +160,73 @@
     .item-analisado:hover {
         box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
     }
+
+/* ========== ESTILOS RESPONSIVOS ========== */
+
+/* Por padrão, o cabeçalho mobile é escondido em telas grandes */
+.mobile-header {
+    display: none;
+}
+
+/* Quando a tela for menor que 992px (tablets e celulares) */
+@media (max-width: 991.98px) {
+    #sidebar {
+        position: fixed; /* Fixa a sidebar para ela sobrepor o conteúdo */
+        top: 0;
+        left: -300px; /* Começa escondida para fora da tela */
+        height: 100vh;
+        z-index: 1030; /* Garante que fique acima do conteúdo */
+        transition: left 0.3s ease-in-out;
+        width: 300px !important; /* Define uma largura fixa para a sidebar aberta */
+    }
+
+    #sidebar.active {
+        left: 0; /* Mostra a sidebar ao adicionar a classe 'active' */
+    }
+
+    .main-content {
+        padding-left: 1rem; /* Reduz o padding em telas menores */
+        padding-right: 1rem;
+        padding-top: 60px; /* Adiciona espaço para o cabeçalho mobile fixo */
+    }
+
+    /* Mostra o cabeçalho mobile e o botão de toggle */
+    .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background-color: var(--sidebar-bg, #212529);
+        color: white;
+        padding: 0 1rem;
+        z-index: 1020;
+    }
+
+    #sidebar-toggle-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+    }
+
+    /* Overlay para escurecer o conteúdo quando a sidebar estiver aberta */
+    #overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1029; /* Fica abaixo da sidebar mas acima do conteúdo */
+    }
+
+    #overlay.active {
+        display: block;
+    }
+}
+
